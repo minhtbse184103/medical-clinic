@@ -83,6 +83,15 @@ com.tranminh.medicalclinic/
 - Authentication and authorization failures from Spring Security return JSON error responses.
 - Refresh tokens are stateless in the MVP, so individual logout/revocation is not implemented yet.
 
+### Admin doctor management
+
+- `POST /api/v1/admin/doctors` is implemented and requires role `ADMIN`.
+- `AdminDoctorService` creates a `User` with role `DOCTOR` and its `Doctor` profile in one transaction.
+- Email and doctor license number uniqueness are checked before persistence.
+- Duplicate license number returns `409 DOCTOR_LICENSE_NUMBER_ALREADY_EXISTS`.
+- Unit and controller tests cover success, validation, duplicate license, and authorization.
+- Postman verified the full flow: ADMIN login followed by doctor creation returns `201 Created`.
+
 ## API Documentation
 
 `docs/07-rest-api-design.md` now defines that successful endpoints return endpoint-specific response DTOs, except endpoints explicitly designed as `204 No Content`.
@@ -94,9 +103,9 @@ com.tranminh.medicalclinic/
 
 ## Next Task
 
-Start the Doctor module with admin-managed doctor creation:
+Implement authenticated doctor discovery:
 
-1. Read the Admin and Doctor sections of `docs/02`, `docs/03`, `docs/05`, `docs/06`, and `docs/07`.
-2. Complete the missing response contract for `POST /api/v1/admin/doctors` in `docs/07` before implementation.
-3. Add `CreateDoctorRequest` and `DoctorResponse` DTOs, then implement the service/controller with role `ADMIN`.
-4. Add tests for successful creation, duplicate email/license number, validation, and authorization.
+1. Read the Doctor API sections of `docs/02`, `docs/03`, and `docs/07`.
+2. Complete the response contract for doctor list/detail in `docs/07` before implementation.
+3. Implement paginated `GET /api/v1/doctors` with `specialty` and `name` filters, then `GET /api/v1/doctors/{doctorId}`.
+4. Allow all authenticated roles to view doctors; do not expose email, password data, or internal User fields.
