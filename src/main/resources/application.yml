@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: medical-clinic
+
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/medical_clinic?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
