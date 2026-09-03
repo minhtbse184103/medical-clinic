@@ -86,6 +86,20 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(DoctorLicenseNumberAlreadyExistsException.class)
+    public ResponseEntity<ApiErrorResponse> handleDoctorLicenseNumberAlreadyExists(
+            DoctorLicenseNumberAlreadyExistsException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                "DOCTOR_LICENSE_NUMBER_ALREADY_EXISTS",
+                exception.getMessage(),
+                request.getRequestURI(),
+                null
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,
