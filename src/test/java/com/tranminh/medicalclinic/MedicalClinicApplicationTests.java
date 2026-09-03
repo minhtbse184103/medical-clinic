@@ -1,4 +1,4 @@
-package com.tranminh.medical_clinic;
+package com.tranminh.medicalclinic;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
