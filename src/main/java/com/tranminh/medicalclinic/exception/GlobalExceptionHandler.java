@@ -100,6 +100,102 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(DoctorNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleDoctorNotFound(
+            DoctorNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                "DOCTOR_NOT_FOUND",
+                exception.getMessage(),
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(DoctorScheduleInvalidTimeRangeException.class)
+    public ResponseEntity<ApiErrorResponse> handleDoctorScheduleInvalidTimeRange(
+            DoctorScheduleInvalidTimeRangeException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "DOCTOR_SCHEDULE_INVALID_TIME_RANGE",
+                exception.getMessage(),
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(DoctorScheduleOverlapException.class)
+    public ResponseEntity<ApiErrorResponse> handleDoctorScheduleOverlap(
+            DoctorScheduleOverlapException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                "DOCTOR_SCHEDULE_OVERLAP",
+                exception.getMessage(),
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(DoctorScheduleNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleDoctorScheduleNotFound(
+            DoctorScheduleNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                "DOCTOR_SCHEDULE_NOT_FOUND",
+                exception.getMessage(),
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(DoctorNotAvailableException.class)
+    public ResponseEntity<ApiErrorResponse> handleDoctorNotAvailable(
+            DoctorNotAvailableException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.CONFLICT, "DOCTOR_NOT_AVAILABLE", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(AppointmentTimePassedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAppointmentTimePassed(
+            AppointmentTimePassedException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "APPOINTMENT_TIME_PASSED", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(AppointmentSlotNotAvailableException.class)
+    public ResponseEntity<ApiErrorResponse> handleAppointmentSlotNotAvailable(
+            AppointmentSlotNotAvailableException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_NOT_AVAILABLE", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(AppointmentSlotAlreadyBookedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAppointmentSlotAlreadyBooked(
+            AppointmentSlotAlreadyBookedException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.CONFLICT, "APPOINTMENT_SLOT_ALREADY_BOOKED", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(PatientTimeConflictException.class)
+    public ResponseEntity<ApiErrorResponse> handlePatientTimeConflict(
+            PatientTimeConflictException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.CONFLICT, "PATIENT_TIME_CONFLICT", exception.getMessage(), request.getRequestURI(), null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,
