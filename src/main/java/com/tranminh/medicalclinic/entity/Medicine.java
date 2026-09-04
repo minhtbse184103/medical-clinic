@@ -44,6 +44,22 @@ public class Medicine {
         return id;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
     @PrePersist
     private void onCreate() {
         LocalDateTime now = LocalDateTime.now();
