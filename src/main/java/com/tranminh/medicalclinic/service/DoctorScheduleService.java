@@ -5,31 +5,44 @@ import com.tranminh.medicalclinic.dto.request.UpdateDoctorScheduleRequest;
 import com.tranminh.medicalclinic.dto.response.DoctorScheduleResponse;
 import com.tranminh.medicalclinic.entity.Doctor;
 import com.tranminh.medicalclinic.entity.DoctorSchedule;
+import com.tranminh.medicalclinic.entity.Appointment;
+import com.tranminh.medicalclinic.enums.AppointmentStatus;
 import com.tranminh.medicalclinic.enums.UserStatus;
 import com.tranminh.medicalclinic.exception.DoctorNotFoundException;
+import com.tranminh.medicalclinic.exception.DoctorScheduleHasActiveAppointmentsException;
 import com.tranminh.medicalclinic.exception.DoctorScheduleInvalidTimeRangeException;
 import com.tranminh.medicalclinic.exception.DoctorScheduleOverlapException;
 import com.tranminh.medicalclinic.exception.DoctorScheduleNotFoundException;
 import com.tranminh.medicalclinic.repository.DoctorRepository;
 import com.tranminh.medicalclinic.repository.DoctorScheduleRepository;
+import com.tranminh.medicalclinic.repository.AppointmentRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Service
 public class DoctorScheduleService {
 
     private final DoctorRepository doctorRepository;
     private final DoctorScheduleRepository doctorScheduleRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final Clock clock;
 
     public DoctorScheduleService(
             DoctorRepository doctorRepository,
-            DoctorScheduleRepository doctorScheduleRepository
+            DoctorScheduleRepository doctorScheduleRepository,
+            AppointmentRepository appointmentRepository,
+            Clock clock
     ) {
         this.doctorRepository = doctorRepository;
         this.doctorScheduleRepository = doctorScheduleRepository;
+        this.appointmentRepository = appointmentRepository;
+        this.clock = clock;
     }
 
     @Transactional
@@ -105,6 +118,45 @@ public class DoctorScheduleService {
 
         schedule.update(request.dayOfWeek(), request.startTime(), request.endTime());
         return toResponse(schedule);
+    }
+
+    @Transactional
+    public void deleteSchedule(Long doctorId, Long scheduleId) {
+        doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new DoctorNotFoundException(doctorId));
+
+        DoctorSchedule schedule = doctorScheduleRepository.findByIdAndDoctor_Id(scheduleId, doctorId)
+                .orElseThrow(() -> new DoctorScheduleNotFoundException(scheduleId));
+
+        if (hasFutureActiveAppointmentInSchedule(doctorId, schedule)) {
+            throw new DoctorScheduleHasActiveAppointmentsException();
+        }
+
+        doctorScheduleRepository.delete(schedule);
+    }
+
+    private boolean hasFutureActiveAppointmentInSchedule(Long doctorId, DoctorSchedule schedule) {
+        LocalDate today = LocalDate.now(clock);
+        LocalTime now = LocalTime.now(clock);
+
+        return appointmentRepository.findByDoctor_IdAndAppointmentDateGreaterThanEqualAndStatusIn(
+                        doctorId,
+                        today,
+                        List.of(AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED)
+                ).stream()
+                .filter(appointment -> isNotFinished(appointment, today, now))
+                .anyMatch(appointment -> belongsToSchedule(appointment, schedule));
+    }
+
+    private boolean isNotFinished(Appointment appointment, LocalDate today, LocalTime now) {
+        return appointment.getAppointmentDate().isAfter(today)
+                || !appointment.getEndTime().isBefore(now);
+    }
+
+    private boolean belongsToSchedule(Appointment appointment, DoctorSchedule schedule) {
+        return appointment.getAppointmentDate().getDayOfWeek() == schedule.getDayOfWeek()
+                && !appointment.getStartTime().isBefore(schedule.getStartTime())
+                && !appointment.getEndTime().isAfter(schedule.getEndTime());
     }
 
     private DoctorScheduleResponse toResponse(DoctorSchedule schedule) {

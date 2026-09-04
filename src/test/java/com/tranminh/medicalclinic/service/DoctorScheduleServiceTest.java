@@ -6,10 +6,14 @@ import com.tranminh.medicalclinic.dto.response.DoctorScheduleResponse;
 import com.tranminh.medicalclinic.entity.Doctor;
 import com.tranminh.medicalclinic.entity.DoctorSchedule;
 import com.tranminh.medicalclinic.entity.User;
+import com.tranminh.medicalclinic.entity.Appointment;
+import com.tranminh.medicalclinic.enums.AppointmentStatus;
 import com.tranminh.medicalclinic.enums.Role;
 import com.tranminh.medicalclinic.exception.DoctorScheduleInvalidTimeRangeException;
 import com.tranminh.medicalclinic.exception.DoctorScheduleOverlapException;
 import com.tranminh.medicalclinic.exception.DoctorScheduleNotFoundException;
+import com.tranminh.medicalclinic.exception.DoctorScheduleHasActiveAppointmentsException;
+import com.tranminh.medicalclinic.repository.AppointmentRepository;
 import com.tranminh.medicalclinic.repository.DoctorRepository;
 import com.tranminh.medicalclinic.repository.DoctorScheduleRepository;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.DayOfWeek;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -41,6 +48,12 @@ class DoctorScheduleServiceTest {
 
     @Mock
     private DoctorScheduleRepository doctorScheduleRepository;
+
+    @Mock
+    private AppointmentRepository appointmentRepository;
+
+    @Mock
+    private Clock clock;
 
     @InjectMocks
     private DoctorScheduleService doctorScheduleService;
@@ -188,6 +201,50 @@ class DoctorScheduleServiceTest {
                 DoctorScheduleNotFoundException.class,
                 () -> doctorScheduleService.updateSchedule(5L, 12L, validUpdateRequest())
         );
+    }
+
+    @Test
+    void deleteSchedule_deletesWhenThereIsNoFutureActiveAppointmentInTheSchedule() {
+        Doctor doctor = createDoctor(5L);
+        DoctorSchedule schedule = createSchedule(12L, doctor, DayOfWeek.MONDAY, 8, 0);
+        when(doctorRepository.findById(5L)).thenReturn(Optional.of(doctor));
+        when(doctorScheduleRepository.findByIdAndDoctor_Id(12L, 5L)).thenReturn(Optional.of(schedule));
+        when(clock.instant()).thenReturn(Instant.parse("2026-09-10T02:00:00Z"));
+        when(clock.getZone()).thenReturn(ZoneId.of("Asia/Ho_Chi_Minh"));
+        when(appointmentRepository.findByDoctor_IdAndAppointmentDateGreaterThanEqualAndStatusIn(
+                eq(5L), eq(java.time.LocalDate.of(2026, 9, 10)), any()
+        )).thenReturn(List.of());
+
+        doctorScheduleService.deleteSchedule(5L, 12L);
+
+        verify(doctorScheduleRepository).delete(schedule);
+    }
+
+    @Test
+    void deleteSchedule_throwsConflictWhenFutureActiveAppointmentIsCoveredBySchedule() {
+        Doctor doctor = createDoctor(5L);
+        DoctorSchedule schedule = createSchedule(12L, doctor, DayOfWeek.FRIDAY, 8, 0);
+        Appointment appointment = new Appointment(
+                new com.tranminh.medicalclinic.entity.Patient(new User("patient@example.com", "hash", Role.PATIENT), "Patient A", null, null, null, null),
+                doctor,
+                java.time.LocalDate.of(2026, 9, 11),
+                LocalTime.of(9, 0),
+                LocalTime.of(9, 30),
+                AppointmentStatus.CONFIRMED,
+                "Checkup"
+        );
+        when(doctorRepository.findById(5L)).thenReturn(Optional.of(doctor));
+        when(doctorScheduleRepository.findByIdAndDoctor_Id(12L, 5L)).thenReturn(Optional.of(schedule));
+        when(clock.instant()).thenReturn(Instant.parse("2026-09-10T02:00:00Z"));
+        when(clock.getZone()).thenReturn(ZoneId.of("Asia/Ho_Chi_Minh"));
+        when(appointmentRepository.findByDoctor_IdAndAppointmentDateGreaterThanEqualAndStatusIn(
+                eq(5L), eq(java.time.LocalDate.of(2026, 9, 10)), any()
+        )).thenReturn(List.of(appointment));
+
+        assertThrows(DoctorScheduleHasActiveAppointmentsException.class,
+                () -> doctorScheduleService.deleteSchedule(5L, 12L));
+
+        verify(doctorScheduleRepository, never()).delete(any());
     }
 
     private CreateDoctorScheduleRequest validRequest() {

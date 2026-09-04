@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -138,6 +139,21 @@ class DoctorScheduleControllerTest {
                         .with(authentication(authenticatedUser(2L, "ROLE_PATIENT")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateRequestJson()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+    }
+
+    @Test
+    void deleteSchedule_returnsNoContentForAdmin() throws Exception {
+        mockMvc.perform(delete("/api/v1/doctors/5/schedules/12")
+                        .with(authentication(authenticatedUser(1L, "ROLE_ADMIN"))))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deleteSchedule_returnsForbiddenForNonAdmin() throws Exception {
+        mockMvc.perform(delete("/api/v1/doctors/5/schedules/12")
+                        .with(authentication(authenticatedUser(2L, "ROLE_DOCTOR"))))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
     }
