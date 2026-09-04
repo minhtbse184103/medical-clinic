@@ -53,6 +53,8 @@ public class PrescriptionDetail {
         this.instruction = instruction;
     }
 
+    public Long getId() { return id; }
+    public Prescription getPrescription() { return prescription; }
     public Medicine getMedicine() { return medicine; }
     public String getDosage() { return dosage; }
     public String getFrequency() { return frequency; }

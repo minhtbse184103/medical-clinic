@@ -84,6 +84,12 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             Collection<AppointmentStatus> statuses
     );
 
+    List<Appointment> findByDoctor_IdAndAppointmentDateGreaterThanEqualAndStatusIn(
+            Long doctorId,
+            LocalDate appointmentDate,
+            Collection<AppointmentStatus> statuses
+    );
+
     boolean existsByDoctor_IdAndAppointmentDateAndStartTimeAndStatusIn(
             Long doctorId,
             LocalDate appointmentDate,
@@ -97,4 +103,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
             LocalTime startTime,
             Collection<AppointmentStatus> statuses
     );
+
+    boolean existsByDoctor_IdAndPatient_Id(Long doctorId, Long patientId);
 }
