@@ -28,6 +28,8 @@ Canonical Java package:
 - Flyway owns schema evolution.
 - Maven dependencies use `spring-boot-starter-flyway` and `flyway-mysql`.
 - `V1__create_initial_schema.sql` was applied successfully.
+- `V2__seed_initial_medicines.sql` was applied successfully and adds four small demo catalogue entries: Paracetamol, Ibuprofen, Amoxicillin, and Vitamin C.
+- `V3__add_refresh_tokens.sql` was applied successfully and stores refresh-token identifiers for rotation and logout revocation.
 - Schema contains the 9 MVP business tables and `flyway_schema_history`.
 - The generated active doctor-slot column and its unique constraint were accepted by MySQL 8.0.44.
 
@@ -53,8 +55,8 @@ com.tranminh.medicalclinic/
 
 ### Persistence
 
-- All 9 JPA entities and required enums are mapped and Hibernate-validated.
-- Repository layer is implemented for User, Patient, Doctor, DoctorSchedule, Appointment, MedicalRecord, Medicine, Prescription, and PrescriptionDetail.
+- All 9 domain JPA entities plus the technical `RefreshToken` entity and required enums are mapped and Hibernate-validated.
+- Repository layer is implemented for User, Patient, Doctor, DoctorSchedule, Appointment, MedicalRecord, Medicine, Prescription, PrescriptionDetail, and RefreshToken.
 
 ### Patient registration
 
@@ -77,11 +79,12 @@ com.tranminh.medicalclinic/
 
 - `POST /api/v1/auth/login` is public and returns `LoginResponse` with an access token and refresh token.
 - `POST /api/v1/auth/refresh` is public and returns a rotated token pair for a valid refresh token.
+- `POST /api/v1/auth/logout` is public, accepts `RefreshTokenRequest`, and returns `204 No Content`.
 - JWT uses a Base64 signing secret from `JWT_SECRET`; no secret is stored in the repository.
 - Security is stateless. `JwtAuthenticationFilter` validates Bearer access tokens and puts the user ID and role into `SecurityContext`.
 - Invalid login credentials return `401 INVALID_CREDENTIALS`; inactive accounts return `403 ACCOUNT_INACTIVE`; invalid refresh tokens return `401 INVALID_REFRESH_TOKEN`.
 - Authentication and authorization failures from Spring Security return JSON error responses.
-- Refresh tokens are stateless in the MVP, so individual logout/revocation is not implemented yet.
+- Refresh-token `jti` values are stored in `refresh_tokens`; the token itself is never stored. Logout revokes its refresh token and refresh rotates it in one transaction. Existing stateless access tokens remain valid until their 15-minute expiry.
 
 ### Admin doctor management
 
@@ -123,6 +126,13 @@ com.tranminh.medicalclinic/
 - The service verifies that the Doctor exists and that the schedule belongs to that Doctor.
 - Overlap validation excludes the schedule currently being updated.
 - A schedule that does not belong to the Doctor returns `404 DOCTOR_SCHEDULE_NOT_FOUND`.
+
+### Doctor schedule deletion
+
+- `DELETE /api/v1/doctors/{doctorId}/schedules/{scheduleId}` is implemented and requires role `ADMIN`.
+- A weekly schedule is hard-deleted because it is future configuration, not clinical history.
+- Deletion is rejected with `409 DOCTOR_SCHEDULE_HAS_ACTIVE_APPOINTMENTS` when that schedule covers a `PENDING` or `CONFIRMED` appointment that has not finished yet; `COMPLETED` and `CANCELLED` appointments do not block deletion.
+- The endpoint returns `204 No Content` on success.
 - Doctor Schedule targeted tests now pass (15 tests total).
 
 ### Available appointment slots
@@ -198,6 +208,49 @@ com.tranminh.medicalclinic/
 - The response returns endpoint-specific Medical Record data without internal User fields.
 - `PatientMedicalRecordQueryServiceTest` and `PatientMedicalRecordControllerTest` cover pagination/query behavior and authorization.
 
+### Doctor access to Patient medical history
+
+- `GET /api/v1/doctor/patients/{patientId}/medical-records` is implemented and requires role `DOCTOR`.
+- The service requires an active Doctor profile and an existing Patient profile.
+- Doctor access is allowed only if at least one Appointment exists between the authenticated Doctor and the requested Patient; role alone is insufficient.
+- Results are paginated, ordered by `createdAt` descending, and expose only necessary Medical Record fields.
+- `DoctorPatientMedicalRecordQueryServiceTest` and `DoctorPatientMedicalRecordControllerTest` pass (4 tests total).
+
+### Patient prescription history
+
+- `GET /api/v1/patients/me/prescriptions` is implemented and requires role `PATIENT`.
+- The Patient identity is derived exclusively from JWT and only that Patient's Prescriptions are returned.
+- The paginated response includes Prescription details with medicine names so the frontend can display a prescription without a separate medicine lookup.
+- Prescription details are loaded in one batch for the response page to avoid an N+1 query pattern.
+- `PatientPrescriptionQueryServiceTest` and `PatientPrescriptionControllerTest` pass (4 tests total).
+
+### Prescription detail view
+
+- `GET /api/v1/medical-records/{medicalRecordId}/prescription` is implemented for `PATIENT` and `DOCTOR`.
+- The service applies ownership by actor: Patient must own the Medical Record; Doctor must own the related Appointment. ADMIN and RECEPTIONIST cannot access this endpoint.
+- The response includes medicine names and dosage details for direct frontend display.
+- `PrescriptionQueryServiceTest` and `PrescriptionQueryControllerTest` pass (5 tests total).
+
+### Doctor medicine discovery
+
+- `GET /api/v1/medicines` is implemented and requires an `ACTIVE` `DOCTOR` profile.
+- Optional `name` and `active` filters are supported with pagination; results are ordered by medicine name ascending.
+- The response contains only Medicine catalogue fields required when selecting a medicine for a Prescription.
+- `MedicineQueryServiceTest` and `MedicineControllerTest` pass (4 tests total).
+
+### Receptionist appointment creation
+
+- `POST /api/v1/receptionist/appointments` is implemented for `RECEPTIONIST`.
+- The request explicitly identifies the Patient; the service reuses the Patient booking rules and creates a `PENDING` Appointment.
+- `AppointmentBookingServiceTest` and `ReceptionistAppointmentControllerTest` cover the receptionist booking flow.
+
+### Admin staff management
+
+- `POST /api/v1/admin/receptionists` creates an `ACTIVE` `RECEPTIONIST` User with a BCrypt-hashed temporary password.
+- `GET /api/v1/admin/staff` lists only `DOCTOR` and `RECEPTIONIST` users with optional role/status filters and pagination.
+- `POST /api/v1/admin/users/{userId}/activate` and `/deactivate` change staff status without deleting historical data.
+- `AdminStaffServiceTest` and `AdminStaffControllerTest` cover creation, deactivation, and authorization.
+
 ## API Documentation
 
 `docs/07-rest-api-design.md` now defines that successful endpoints return endpoint-specific response DTOs, except endpoints explicitly designed as `204 No Content`.
@@ -209,9 +262,4 @@ com.tranminh.medicalclinic/
 
 ## Next Task
 
-Implement Doctor access to a Patient's medical history:
-
-1. Read medical-history authorization policy in `docs/02`, `docs/03`, `docs/05`, and `docs/07`.
-2. Define and implement `GET /api/v1/doctor/patients/{patientId}/medical-records` for `DOCTOR`.
-3. Enforce a documented Doctor-Patient clinical relationship policy in the service; do not authorize by role alone.
-4. Return only the necessary medical-record fields in a paginated response DTO.
+Verify Flyway V3 and the completed core MVP API flow against MySQL/Postman, then commit the current focused milestone.

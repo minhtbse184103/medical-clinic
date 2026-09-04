@@ -348,9 +348,19 @@ Errors:
 POST /api/v1/auth/logout
 ```
 
-MVP tùy implementation refresh-token storage.
+Request: `RefreshTokenRequest`
 
-Nếu server quản lý refresh token, logout sẽ invalidate token.
+```json
+{
+  "refreshToken": "..."
+}
+```
+
+Response: `204 NO CONTENT`
+
+Server lưu chỉ `jti` của refresh token trong database, không lưu token thô. Logout thu hồi refresh token đó; endpoint idempotent nên token đã revoke hoặc đã hết hạn vẫn trả `204`.
+
+Access token vẫn stateless, do đó có thể còn sử dụng cho đến khi hết hạn (tối đa 15 phút). Frontend phải xóa cả access token và refresh token cục bộ sau khi logout.
 
 ---
 
@@ -361,7 +371,7 @@ Nếu server quản lý refresh token, logout sẽ invalidate token.
 - Refresh token có thời hạn `604800` giây (7 ngày).
 - JWT signing secret chỉ lấy từ environment variable `JWT_SECRET`, ở dạng Base64 của ít nhất 32 random bytes; không ghi secret thật vào source code, `application.yml`, tài liệu hoặc commit.
 - Protected endpoint lấy user hiện tại từ JWT security context, không nhận `userId` từ client.
-- MVP hiện dùng refresh token stateless: server không lưu refresh token nên chưa hỗ trợ revoke từng token hoặc logout thực sự. Refresh token hợp lệ sẽ được thay bằng một refresh token mới.
+- Refresh token mang `jti`; server lưu `jti`, user và expiry trong database. Refresh token được rotate: token cũ bị xóa và token mới được lưu trong cùng transaction.
 
 ---
 
@@ -439,10 +449,37 @@ Role:
 ADMIN
 ```
 
+Request:
+
+```json
+{
+  "email": "receptionist@example.com",
+  "temporaryPassword": "Temp123!"
+}
+```
+
 Response:
 
 ```text
 201 CREATED
+```
+
+Response body: `StaffResponse`
+
+```json
+{
+  "userId": 3,
+  "email": "receptionist@example.com",
+  "role": "RECEPTIONIST",
+  "status": "ACTIVE",
+  "createdAt": "2026-09-04T14:00:00"
+}
+```
+
+Errors:
+
+```text
+409 EMAIL_ALREADY_EXISTS
 ```
 
 ---
@@ -459,6 +496,28 @@ Role:
 ADMIN
 ```
 
+`role` and `status` are optional filters. Only `DOCTOR` and `RECEPTIONIST` accounts are returned.
+
+Response: `200 OK` - `StaffPageResponse`
+
+```json
+{
+  "content": [
+    {
+      "userId": 3,
+      "email": "receptionist@example.com",
+      "role": "RECEPTIONIST",
+      "status": "ACTIVE",
+      "createdAt": "2026-09-04T14:00:00"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
 ## Activate / Deactivate User
 
 Khuyến nghị action endpoint:
@@ -466,6 +525,14 @@ Khuyến nghị action endpoint:
 ```text
 POST /api/v1/admin/users/{userId}/activate
 POST /api/v1/admin/users/{userId}/deactivate
+```
+
+Both actions return `200 OK` with `StaffResponse` and can change only a `DOCTOR` or `RECEPTIONIST` account.
+
+Errors:
+
+```text
+404 STAFF_NOT_FOUND
 ```
 
 Không hard delete account.
@@ -738,7 +805,17 @@ Role:
 ADMIN
 ```
 
-Lưu ý: nếu việc xóa schedule ảnh hưởng Appointment đã tạo, service phải kiểm tra rule phù hợp.
+Rule: hard delete chỉ được phép khi schedule không bao phủ bất kỳ Appointment `PENDING` hoặc `CONFIRMED` chưa kết thúc từ hiện tại trở đi. Appointment historical (`COMPLETED`/`CANCELLED`) không chặn xóa. Rule này giữ nguyên giờ khám của các lịch đã được đặt.
+
+Response: `204 NO CONTENT`
+
+Errors:
+
+```text
+404 DOCTOR_NOT_FOUND
+404 DOCTOR_SCHEDULE_NOT_FOUND
+409 DOCTOR_SCHEDULE_HAS_ACTIVE_APPOINTMENTS
+```
 
 ---
 
@@ -938,6 +1015,10 @@ Status ban đầu vẫn:
 ```text
 PENDING
 ```
+
+Response: `201 CREATED` - `AppointmentResponse`
+
+The booking applies the same availability, schedule, future-time, Doctor conflict, and Patient time-conflict rules as Patient self-booking.
 
 Khuyến nghị giữ cùng lifecycle thay vì tự động CONFIRMED.
 
@@ -1338,9 +1419,46 @@ Role:
 DOCTOR
 ```
 
-Business authorization cần kiểm tra Doctor có quan hệ khám hợp lệ với Patient theo policy của MVP.
+Pagination:
+
+```text
+?page=0&size=20
+```
+
+Response: `200 OK` - `DoctorPatientMedicalRecordPageResponse`
+
+```json
+{
+  "patientId": 10,
+  "content": [
+    {
+      "medicalRecordId": 55,
+      "appointmentId": 101,
+      "symptoms": "Fever and sore throat",
+      "diagnosis": "Acute pharyngitis",
+      "treatment": "Rest and drink water",
+      "notes": "Follow up in three days",
+      "createdAt": "2026-09-04T10:00:00"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+Business authorization: Doctor is allowed only when at least one Appointment exists between the authenticated Doctor and the requested Patient. Once this clinical relationship exists, the Doctor may read the Patient's medical-history records needed for care. Results are ordered by `createdAt` descending.
 
 Không chỉ dựa vào role.
+
+Errors:
+
+```text
+403 DOCTOR_PATIENT_MEDICAL_RECORD_ACCESS_FORBIDDEN
+404 DOCTOR_PROFILE_NOT_FOUND
+404 PATIENT_NOT_FOUND
+```
 
 ---
 
@@ -1365,6 +1483,37 @@ Filter:
 &active=true
 &page=0
 &size=20
+```
+
+Both `name` and `active` are optional. Results are ordered by medicine name ascending.
+
+Response: `200 OK` - `MedicinePageResponse`
+
+```json
+{
+  "content": [
+    {
+      "medicineId": 3,
+      "name": "Paracetamol",
+      "unit": "tablet",
+      "description": "Pain relief and fever reduction",
+      "active": true
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+The endpoint is restricted to an authenticated `ACTIVE` Doctor. It exposes only Medicine catalogue fields needed to select a medicine for a Prescription.
+
+Errors:
+
+```text
+403 ACCOUNT_INACTIVE
+404 DOCTOR_PROFILE_NOT_FOUND
 ```
 
 MVP chưa cần full CRUD medicine nếu muốn giảm scope.
@@ -1445,13 +1594,101 @@ Response:
 GET /api/v1/patients/me/prescriptions
 ```
 
+Role:
+
+```text
+PATIENT
+```
+
+Pagination:
+
+```text
+?page=0&size=20
+```
+
+Response: `200 OK` - `PatientPrescriptionPageResponse`
+
+```json
+{
+  "content": [
+    {
+      "prescriptionId": 70,
+      "medicalRecordId": 55,
+      "appointmentId": 101,
+      "notes": "Take after food",
+      "details": [
+        {
+          "medicineId": 3,
+          "medicineName": "Paracetamol",
+          "dosage": "1 tablet",
+          "frequency": "2 times/day",
+          "duration": "5 days",
+          "quantity": 10,
+          "instruction": "After breakfast and dinner"
+        }
+      ],
+      "createdAt": "2026-09-04T10:00:00"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+The Patient identity is always derived from JWT. The endpoint returns only that Patient's Prescriptions, including the medicine name and dosage details needed for display. Results are ordered by `createdAt` descending.
+
+Errors:
+
+```text
+404 PATIENT_PROFILE_NOT_FOUND
+```
+
 hoặc:
 
 ```text
 GET /api/v1/medical-records/{medicalRecordId}/prescription
 ```
 
-Nếu dùng endpoint theo resource ID, phải kiểm tra ownership.
+Roles:
+
+```text
+PATIENT
+DOCTOR
+```
+
+Response: `200 OK` - `PrescriptionViewResponse`
+
+```json
+{
+  "prescriptionId": 70,
+  "medicalRecordId": 55,
+  "appointmentId": 101,
+  "notes": "Take after food",
+  "details": [
+    {
+      "medicineId": 3,
+      "medicineName": "Paracetamol",
+      "dosage": "1 tablet",
+      "frequency": "2 times/day",
+      "duration": "5 days",
+      "quantity": 10,
+      "instruction": "After breakfast and dinner"
+    }
+  ],
+  "createdAt": "2026-09-04T10:00:00"
+}
+```
+
+Ownership is mandatory: a Patient may read only a Prescription from their own Medical Record; a Doctor may read only a Prescription from an Appointment that belongs to that Doctor. The endpoint does not allow ADMIN or RECEPTIONIST access in the MVP.
+
+Errors:
+
+```text
+403 PRESCRIPTION_ACCESS_FORBIDDEN
+404 PRESCRIPTION_NOT_FOUND
+```
 
 MVP có thể hỗ trợ cả:
 - list own prescriptions;
