@@ -406,8 +406,6 @@ Role:
 ADMIN
 ```
 
----
-
 ## Activate / Deactivate User
 
 Khuyến nghị action endpoint:
@@ -502,13 +500,22 @@ Response body: `PatientProfileResponse`
 GET /api/v1/doctors
 ```
 
-Có thể public hoặc authenticated.
-
-MVP khuyến nghị:
+MVP:
 
 ```text
 Authenticated users
 ```
+
+Roles:
+
+```text
+ADMIN
+DOCTOR
+RECEPTIONIST
+PATIENT
+```
+
+Chỉ trả về Doctor có tài khoản `ACTIVE`.
 
 Query:
 
@@ -519,6 +526,30 @@ Query:
 &name=tran
 ```
 
+`specialty` và `name` là filter tùy chọn, tìm kiếm không phân biệt chữ hoa/thường.
+
+Response: `200 OK` — `DoctorPageResponse`
+
+```json
+{
+  "content": [
+    {
+      "doctorId": 5,
+      "fullName": "Dr. Tran B",
+      "phone": "0900000000",
+      "specialty": "Cardiology",
+      "bio": "Specializes in cardiovascular care."
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+Không trả về `email`, `passwordHash`, `licenseNumber`, `userId`, role, hoặc các trường nội bộ của `User`.
+
 ---
 
 ## Doctor detail
@@ -526,6 +557,22 @@ Query:
 ```text
 GET /api/v1/doctors/{doctorId}
 ```
+
+Roles: tất cả authenticated roles.
+
+Response: `200 OK` — `DoctorResponse`
+
+```json
+{
+  "doctorId": 5,
+  "fullName": "Dr. Tran B",
+  "phone": "0900000000",
+  "specialty": "Cardiology",
+  "bio": "Specializes in cardiovascular care."
+}
+```
+
+Nếu Doctor không tồn tại hoặc không còn `ACTIVE`, trả về `404 DOCTOR_NOT_FOUND`.
 
 ---
 
@@ -554,13 +601,30 @@ Request:
 ```
 
 Validation:
-- startTime < endTime
-- không overlap schedule hiện có
+- `dayOfWeek`, `startTime`, `endTime` bắt buộc.
+- `startTime` phải nhỏ hơn `endTime`.
+- Không overlap với schedule hiện có của cùng Doctor trong cùng `dayOfWeek`.
+- Hai khoảng liền kề là hợp lệ, ví dụ `08:00-12:00` và `12:00-17:00`.
 
-Response:
+Response: `201 CREATED` — `DoctorScheduleResponse`
+
+```json
+{
+  "scheduleId": 12,
+  "doctorId": 5,
+  "dayOfWeek": "MONDAY",
+  "startTime": "08:00:00",
+  "endTime": "12:00:00",
+  "createdAt": "2026-09-04T09:00:00"
+}
+```
+
+Errors:
 
 ```text
-201 CREATED
+404 DOCTOR_NOT_FOUND
+400 DOCTOR_SCHEDULE_INVALID_TIME_RANGE
+409 DOCTOR_SCHEDULE_OVERLAP
 ```
 
 ---
@@ -575,6 +639,34 @@ Role:
 
 ```text
 ADMIN
+```
+
+Request: `UpdateDoctorScheduleRequest`
+
+```json
+{
+  "dayOfWeek": "MONDAY",
+  "startTime": "09:00:00",
+  "endTime": "12:00:00"
+}
+```
+
+Validation:
+
+- `dayOfWeek`, `startTime`, `endTime` bắt buộc.
+- `startTime` phải nhỏ hơn `endTime`.
+- Schedule phải thuộc `doctorId` trên URL.
+- Không overlap với schedule khác của cùng Doctor trong cùng `dayOfWeek`; loại trừ chính schedule đang cập nhật.
+
+Response: `200 OK` — `DoctorScheduleResponse`
+
+Errors:
+
+```text
+404 DOCTOR_NOT_FOUND
+404 DOCTOR_SCHEDULE_NOT_FOUND
+400 DOCTOR_SCHEDULE_INVALID_TIME_RANGE
+409 DOCTOR_SCHEDULE_OVERLAP
 ```
 
 ---
@@ -603,6 +695,39 @@ Lưu ý: nếu việc xóa schedule ảnh hưởng Appointment đã tạo, servi
 GET /api/v1/doctors/{doctorId}/schedules
 ```
 
+Roles: tất cả authenticated roles.
+
+Response: `200 OK` — `DoctorScheduleResponse[]`
+
+```json
+[
+  {
+    "scheduleId": 12,
+    "doctorId": 5,
+    "dayOfWeek": "MONDAY",
+    "startTime": "08:00:00",
+    "endTime": "12:00:00",
+    "createdAt": "2026-09-04T09:00:00"
+  },
+  {
+    "scheduleId": 13,
+    "doctorId": 5,
+    "dayOfWeek": "MONDAY",
+    "startTime": "13:00:00",
+    "endTime": "17:00:00",
+    "createdAt": "2026-09-04T09:05:00"
+  }
+]
+```
+
+Chỉ trả schedule của Doctor có tài khoản `ACTIVE`. Kết quả luôn được sắp theo `dayOfWeek` từ `MONDAY` đến `SUNDAY`, sau đó theo `startTime` tăng dần.
+
+Error:
+
+```text
+404 DOCTOR_NOT_FOUND
+```
+
 ---
 
 # 10. Available Slots API
@@ -614,7 +739,15 @@ GET /api/v1/doctors/{doctorId}/available-slots?date=2026-09-10
 Actor:
 - PATIENT
 - RECEPTIONIST
-- Có thể cho DOCTOR/ADMIN đọc nếu cần.
+- DOCTOR và ADMIN cũng được phép đọc trong MVP.
+
+Query:
+
+```text
+date=2026-09-10
+```
+
+`date` là bắt buộc, dùng định dạng ISO `yyyy-MM-dd`.
 
 Response:
 
@@ -644,6 +777,14 @@ Weekly DoctorSchedule
 Active Appointments(PENDING/CONFIRMED)
         =
 Available Slots
+```
+
+Mỗi slot có thời lượng cố định 30 phút. Chỉ trả slot có thời điểm bắt đầu nằm trong tương lai; ngày quá khứ trả danh sách `slots` rỗng.
+
+Errors:
+
+```text
+404 DOCTOR_NOT_FOUND
 ```
 
 ---
@@ -686,15 +827,29 @@ Backend tự:
 - tính endTime;
 - đặt status = PENDING.
 
-Response:
+Response: `201 CREATED` — `AppointmentResponse`
 
-```text
-201 CREATED
+```json
+{
+  "appointmentId": 101,
+  "patientId": 10,
+  "doctorId": 5,
+  "appointmentDate": "2026-09-10",
+  "startTime": "10:00:00",
+  "endTime": "10:30:00",
+  "status": "PENDING",
+  "reason": "Đau đầu kéo dài 3 ngày",
+  "createdAt": "2026-09-04T10:00:00"
+}
 ```
 
-Conflict:
+Errors:
 
 ```text
+404 DOCTOR_NOT_FOUND
+409 DOCTOR_NOT_AVAILABLE
+400 APPOINTMENT_TIME_PASSED
+409 APPOINTMENT_SLOT_NOT_AVAILABLE
 409 APPOINTMENT_SLOT_ALREADY_BOOKED
 409 PATIENT_TIME_CONFLICT
 ```

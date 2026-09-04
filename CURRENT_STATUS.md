@@ -1,6 +1,6 @@
 # Current Project Status
 
-Last updated: 2026-09-03
+Last updated: 2026-09-04
 
 ## Repository
 
@@ -92,6 +92,57 @@ com.tranminh.medicalclinic/
 - Unit and controller tests cover success, validation, duplicate license, and authorization.
 - Postman verified the full flow: ADMIN login followed by doctor creation returns `201 Created`.
 
+### Doctor discovery
+
+- `GET /api/v1/doctors` is implemented for every authenticated MVP role.
+- The endpoint supports pagination (`page`, `size`) and optional case-insensitive `specialty` and `name` filters.
+- `GET /api/v1/doctors/{doctorId}` is implemented.
+- Both endpoints only expose `ACTIVE` Doctor accounts and return public Doctor fields only; email, password data, license number, and internal User fields are excluded.
+- Missing or inactive Doctor returns `404 DOCTOR_NOT_FOUND`.
+- `DoctorQueryServiceTest` and `DoctorControllerTest` pass (6 tests total).
+
+### Doctor schedule creation
+
+- `POST /api/v1/doctors/{doctorId}/schedules` is implemented and requires role `ADMIN`.
+- Schedule uses the weekly recurring model: `dayOfWeek`, `startTime`, and `endTime`.
+- Bean Validation requires all three request fields; the service validates `startTime < endTime`.
+- The service rejects overlapping schedules for the same Doctor and weekday, while adjacent periods are allowed.
+- Invalid time range returns `400 DOCTOR_SCHEDULE_INVALID_TIME_RANGE`; an overlap returns `409 DOCTOR_SCHEDULE_OVERLAP`.
+- `DoctorScheduleServiceTest` and `DoctorScheduleControllerTest` pass (7 tests total).
+
+### Doctor schedule viewing
+
+- `GET /api/v1/doctors/{doctorId}/schedules` is implemented for every authenticated MVP role.
+- The endpoint only returns schedules of an `ACTIVE` Doctor; missing or inactive Doctor returns `404 DOCTOR_NOT_FOUND`.
+- Schedules are returned in weekly order (`MONDAY` to `SUNDAY`), then by `startTime`.
+- Doctor Schedule targeted tests now pass (10 tests total).
+
+### Doctor schedule update
+
+- `PUT /api/v1/doctors/{doctorId}/schedules/{scheduleId}` is implemented and requires role `ADMIN`.
+- The service verifies that the Doctor exists and that the schedule belongs to that Doctor.
+- Overlap validation excludes the schedule currently being updated.
+- A schedule that does not belong to the Doctor returns `404 DOCTOR_SCHEDULE_NOT_FOUND`.
+- Doctor Schedule targeted tests now pass (15 tests total).
+
+### Available appointment slots
+
+- `GET /api/v1/doctors/{doctorId}/available-slots?date=yyyy-MM-dd` is implemented for every authenticated MVP role.
+- The service generates fixed 30-minute slots from the Doctor's weekly schedule for the requested date.
+- Slots occupied by `PENDING` or `CONFIRMED` appointments are excluded; cancelled and completed appointments do not block a slot.
+- Only future slots of an `ACTIVE` Doctor are returned. A past date returns an empty list.
+- `Clock` is configured as a Spring bean so time-dependent service tests stay deterministic.
+- `AvailableSlotServiceTest` and `AvailableSlotControllerTest` pass (5 tests total).
+
+### Patient appointment booking
+
+- `POST /api/v1/appointments` is implemented and requires role `PATIENT`.
+- The Patient identity is derived exclusively from the JWT principal; the request only accepts `doctorId`, `appointmentDate`, `startTime`, and `reason`.
+- The service creates a `PENDING` appointment with a fixed 30-minute duration in one transaction.
+- It validates active Patient and Doctor accounts, a future date/time, weekly schedule membership, an existing Doctor slot, and a same-time Patient conflict.
+- The final `saveAndFlush` lets the database active-slot unique constraint protect concurrent bookings; a uniqueness violation is returned as `409 APPOINTMENT_SLOT_ALREADY_BOOKED`.
+- `AppointmentBookingServiceTest` and `AppointmentControllerTest` pass (7 tests total).
+
 ## API Documentation
 
 `docs/07-rest-api-design.md` now defines that successful endpoints return endpoint-specific response DTOs, except endpoints explicitly designed as `204 No Content`.
@@ -103,9 +154,9 @@ com.tranminh.medicalclinic/
 
 ## Next Task
 
-Implement authenticated doctor discovery:
+Implement the Patient's own appointment list:
 
-1. Read the Doctor API sections of `docs/02`, `docs/03`, and `docs/07`.
-2. Complete the response contract for doctor list/detail in `docs/07` before implementation.
-3. Implement paginated `GET /api/v1/doctors` with `specialty` and `name` filters, then `GET /api/v1/doctors/{doctorId}`.
-4. Allow all authenticated roles to view doctors; do not expose email, password data, or internal User fields.
+1. Read the Patient appointment-list sections of `docs/02`, `docs/03`, `docs/04`, and `docs/07`.
+2. Complete the response DTO and pagination/filter contract for `GET /api/v1/appointments/me` if needed.
+3. Implement the endpoint for role `PATIENT`, deriving the Patient identity exclusively from JWT authentication.
+4. Support the documented optional `status`, `fromDate`, `toDate`, `page`, `size`, and `sort` parameters without exposing internal User data.
