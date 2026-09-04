@@ -190,6 +190,14 @@ com.tranminh.medicalclinic/
 - Prescription and all PrescriptionDetails are persisted in one transaction.
 - `PrescriptionServiceTest` and `PrescriptionControllerTest` pass (6 tests total).
 
+### Patient medical history
+
+- `GET /api/v1/patients/me/medical-records` is implemented and requires role `PATIENT`.
+- The Patient identity is derived exclusively from JWT; the endpoint never accepts a patient ID from the client.
+- Results are paginated and support only `createdAt,asc|desc` sorting, defaulting to `createdAt,desc`.
+- The response returns endpoint-specific Medical Record data without internal User fields.
+- `PatientMedicalRecordQueryServiceTest` and `PatientMedicalRecordControllerTest` cover pagination/query behavior and authorization.
+
 ## API Documentation
 
 `docs/07-rest-api-design.md` now defines that successful endpoints return endpoint-specific response DTOs, except endpoints explicitly designed as `204 No Content`.
@@ -201,9 +209,9 @@ com.tranminh.medicalclinic/
 
 ## Next Task
 
-Implement Patient medical-record history:
+Implement Doctor access to a Patient's medical history:
 
-1. Read medical-history sections of `docs/02`, `docs/05`, and `docs/07`.
-2. Complete the response and pagination contract for `GET /api/v1/patients/me/medical-records`.
-3. Implement the endpoint for `PATIENT`, deriving Patient identity from JWT and exposing only their records.
-4. Return paginated, endpoint-specific response DTOs without exposing internal User data.
+1. Read medical-history authorization policy in `docs/02`, `docs/03`, `docs/05`, and `docs/07`.
+2. Define and implement `GET /api/v1/doctor/patients/{patientId}/medical-records` for `DOCTOR`.
+3. Enforce a documented Doctor-Patient clinical relationship policy in the service; do not authorize by role alone.
+4. Return only the necessary medical-record fields in a paginated response DTO.

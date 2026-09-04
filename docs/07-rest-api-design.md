@@ -1287,6 +1287,39 @@ Pagination:
 ?page=0&size=20&sort=createdAt,desc
 ```
 
+Only `createdAt,asc` and `createdAt,desc` are accepted for `sort`; `createdAt,desc` is the default.
+
+Response: `200 OK` - `PatientMedicalRecordPageResponse`
+
+```json
+{
+  "content": [
+    {
+      "medicalRecordId": 55,
+      "appointmentId": 101,
+      "symptoms": "Fever and sore throat",
+      "diagnosis": "Acute pharyngitis",
+      "treatment": "Rest and drink water",
+      "notes": "Follow up in three days",
+      "createdAt": "2026-09-04T10:00:00"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+The Patient identity is always derived from JWT. The response contains only that Patient's records and does not expose internal User data.
+
+Errors:
+
+```text
+400 INVALID_MEDICAL_RECORD_SORT
+404 PATIENT_PROFILE_NOT_FOUND
+```
+
 ---
 
 ## Doctor xem medical history của Patient

@@ -271,6 +271,14 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_APPOINTMENT_SORT", exception.getMessage(), request.getRequestURI(), null);
     }
 
+    @ExceptionHandler(InvalidMedicalRecordSortException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidMedicalRecordSort(
+            InvalidMedicalRecordSortException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_MEDICAL_RECORD_SORT", exception.getMessage(), request.getRequestURI(), null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,
