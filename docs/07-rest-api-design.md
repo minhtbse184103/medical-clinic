@@ -197,6 +197,35 @@ Response:
 201 CREATED
 ```
 
+Response body: `PrescriptionResponse`
+
+```json
+{
+  "prescriptionId": 20,
+  "medicalRecordId": 10,
+  "notes": "After meals",
+  "details": [
+    {
+      "medicineId": 1,
+      "dosage": "1 tablet",
+      "frequency": "twice daily",
+      "duration": "5 days",
+      "quantity": 10,
+      "instruction": "After meals"
+    }
+  ],
+  "createdAt": "2026-09-10T09:00:00"
+}
+```
+
+Errors:
+
+```text
+403 DOCTOR_APPOINTMENT_ACCESS_FORBIDDEN
+409 PRESCRIPTION_ALREADY_EXISTS
+409 MEDICINE_NOT_AVAILABLE
+```
+
 Response body: `RegisterPatientResponse`
 
 ```json

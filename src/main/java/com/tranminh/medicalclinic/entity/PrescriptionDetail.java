@@ -41,4 +41,22 @@ public class PrescriptionDetail {
 
     protected PrescriptionDetail() {
     }
+
+    public PrescriptionDetail(Prescription prescription, Medicine medicine, String dosage, String frequency,
+                              String duration, Integer quantity, String instruction) {
+        this.prescription = prescription;
+        this.medicine = medicine;
+        this.dosage = dosage;
+        this.frequency = frequency;
+        this.duration = duration;
+        this.quantity = quantity;
+        this.instruction = instruction;
+    }
+
+    public Medicine getMedicine() { return medicine; }
+    public String getDosage() { return dosage; }
+    public String getFrequency() { return frequency; }
+    public String getDuration() { return duration; }
+    public Integer getQuantity() { return quantity; }
+    public String getInstruction() { return instruction; }
 }

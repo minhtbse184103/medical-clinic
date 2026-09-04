@@ -243,6 +243,16 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, "MEDICAL_RECORD_ALREADY_EXISTS", exception.getMessage(), request.getRequestURI(), null);
     }
 
+    @ExceptionHandler(PrescriptionAlreadyExistsException.class)
+    public ResponseEntity<ApiErrorResponse> handlePrescriptionAlreadyExists(PrescriptionAlreadyExistsException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "PRESCRIPTION_ALREADY_EXISTS", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(MedicineNotAvailableException.class)
+    public ResponseEntity<ApiErrorResponse> handleMedicineNotAvailable(MedicineNotAvailableException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "MEDICINE_NOT_AVAILABLE", exception.getMessage(), request.getRequestURI(), null);
+    }
+
     @ExceptionHandler(AppointmentTimeNotReachedException.class)
     public ResponseEntity<ApiErrorResponse> handleAppointmentTimeNotReached(AppointmentTimeNotReachedException exception, HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, "APPOINTMENT_TIME_NOT_REACHED", exception.getMessage(), request.getRequestURI(), null);

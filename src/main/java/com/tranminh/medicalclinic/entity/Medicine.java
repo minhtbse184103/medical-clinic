@@ -40,6 +40,10 @@ public class Medicine {
     protected Medicine() {
     }
 
+    public Long getId() {
+        return id;
+    }
+
     @PrePersist
     private void onCreate() {
         LocalDateTime now = LocalDateTime.now();

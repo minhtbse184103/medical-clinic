@@ -183,6 +183,13 @@ com.tranminh.medicalclinic/
 - MedicalRecord creation and the `COMPLETED` Appointment transition are executed in one transaction.
 - `MedicalRecordServiceTest` and `MedicalRecordControllerTest` pass (5 tests total).
 
+### Prescription creation
+
+- `POST /api/v1/medical-records/{medicalRecordId}/prescription` is implemented and requires role `DOCTOR`.
+- The service verifies Medical Record ownership through its Appointment, enforces one Prescription per Medical Record, and accepts only active Medicines.
+- Prescription and all PrescriptionDetails are persisted in one transaction.
+- `PrescriptionServiceTest` and `PrescriptionControllerTest` pass (6 tests total).
+
 ## API Documentation
 
 `docs/07-rest-api-design.md` now defines that successful endpoints return endpoint-specific response DTOs, except endpoints explicitly designed as `204 No Content`.
@@ -194,9 +201,9 @@ com.tranminh.medicalclinic/
 
 ## Next Task
 
-Implement prescription creation for a Medical Record:
+Implement Patient medical-record history:
 
-1. Read prescription sections of `docs/02`, `docs/03`, `docs/05`, `docs/06`, and `docs/07`.
-2. Complete request/response/error contracts for `POST /api/v1/medical-records/{medicalRecordId}/prescription`.
-3. Implement creation for `DOCTOR` only, ensuring the Medical Record belongs to an appointment of that Doctor.
-4. Validate medicines and quantities, create at most one Prescription per Medical Record, and persist PrescriptionDetails transactionally.
+1. Read medical-history sections of `docs/02`, `docs/05`, and `docs/07`.
+2. Complete the response and pagination contract for `GET /api/v1/patients/me/medical-records`.
+3. Implement the endpoint for `PATIENT`, deriving Patient identity from JWT and exposing only their records.
+4. Return paginated, endpoint-specific response DTOs without exposing internal User data.

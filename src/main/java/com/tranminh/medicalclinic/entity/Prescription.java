@@ -37,6 +37,16 @@ public class Prescription {
     protected Prescription() {
     }
 
+    public Prescription(MedicalRecord medicalRecord, String notes) {
+        this.medicalRecord = medicalRecord;
+        this.notes = notes;
+    }
+
+    public Long getId() { return id; }
+    public MedicalRecord getMedicalRecord() { return medicalRecord; }
+    public String getNotes() { return notes; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+
     @PrePersist
     private void onCreate() {
         LocalDateTime now = LocalDateTime.now();
