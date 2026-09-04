@@ -255,6 +255,12 @@ com.tranminh.medicalclinic/
 
 `docs/07-rest-api-design.md` now defines that successful endpoints return endpoint-specific response DTOs, except endpoints explicitly designed as `204 No Content`.
 
+### Swagger UI
+
+- `springdoc-openapi-starter-webmvc-ui` is configured for interactive API testing.
+- Swagger UI is public at `http://localhost:8080/swagger-ui.html`; the generated OpenAPI document is at `/v3/api-docs`.
+- The UI supports JWT Bearer authorization through its `Authorize` button.
+
 ## Verification
 
 - Targeted controller and service tests for registration, login, refresh token, JWT-protected patient profile, and validation are passing.
