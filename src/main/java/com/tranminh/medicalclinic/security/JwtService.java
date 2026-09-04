@@ -12,6 +12,7 @@ import javax.crypto.SecretKey;
 import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class JwtService {
@@ -43,9 +44,20 @@ public class JwtService {
     public String generateRefreshToken(User user) {
         return generateToken(
                 user,
-                Map.of(TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE),
+                Map.of(
+                        TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE,
+                        "jti", UUID.randomUUID().toString()
+                ),
                 jwtProperties.refreshTokenExpirationSeconds()
         );
+    }
+
+    public String extractTokenId(String token) {
+        return extractClaims(token).getId();
+    }
+
+    public Instant extractExpiration(String token) {
+        return extractClaims(token).getExpiration().toInstant();
     }
 
     public long extractUserId(String token) {

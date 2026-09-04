@@ -164,6 +164,14 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.code").value("INVALID_REFRESH_TOKEN"));
     }
 
+    @Test
+    void logout_returnsNoContent() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{ \"refreshToken\": \"refresh-token\" }"))
+                .andExpect(status().isNoContent());
+    }
+
     private String validRequestJson() {
         return """
                 {

@@ -7,8 +7,6 @@ import com.tranminh.medicalclinic.enums.UserStatus;
 import com.tranminh.medicalclinic.exception.AccountInactiveException;
 import com.tranminh.medicalclinic.exception.InvalidCredentialsException;
 import com.tranminh.medicalclinic.repository.UserRepository;
-import com.tranminh.medicalclinic.security.JwtProperties;
-import com.tranminh.medicalclinic.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -17,19 +15,16 @@ public class LoginService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
-    private final JwtProperties jwtProperties;
+    private final TokenRefreshService tokenRefreshService;
 
     public LoginService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService,
-            JwtProperties jwtProperties
+            TokenRefreshService tokenRefreshService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
-        this.jwtProperties = jwtProperties;
+        this.tokenRefreshService = tokenRefreshService;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -44,14 +39,6 @@ public class LoginService {
             throw new AccountInactiveException();
         }
 
-        String accessToken = jwtService.generateAccessToken(user);
-        String refreshToken = jwtService.generateRefreshToken(user);
-
-        return new LoginResponse(
-                accessToken,
-                refreshToken,
-                "Bearer",
-                jwtProperties.accessTokenExpirationSeconds()
-        );
+        return tokenRefreshService.issueTokenPair(user);
     }
 }
