@@ -143,6 +143,46 @@ com.tranminh.medicalclinic/
 - The final `saveAndFlush` lets the database active-slot unique constraint protect concurrent bookings; a uniqueness violation is returned as `409 APPOINTMENT_SLOT_ALREADY_BOOKED`.
 - `AppointmentBookingServiceTest` and `AppointmentControllerTest` pass (7 tests total).
 
+### Patient appointment list
+
+- `GET /api/v1/appointments/me` is implemented and requires role `PATIENT`.
+- The endpoint derives the Patient identity exclusively from JWT authentication and never accepts a `patientId` from the client.
+- It supports optional `status`, `fromDate`, `toDate`, `page`, `size`, and documented `appointmentDate,asc|desc` sorting.
+- The response is paginated and exposes appointment data plus public Doctor display fields only.
+- Invalid date ranges and unsupported sort values return explicit `400` API errors.
+- `PatientAppointmentQueryServiceTest` and `AppointmentControllerTest` pass (7 tests total).
+
+### Doctor appointment list
+
+- `GET /api/v1/doctor/appointments` is implemented and requires role `DOCTOR`.
+- The endpoint derives the Doctor identity exclusively from JWT authentication and accepts optional `date`, `status`, `page`, and `size` filters.
+- Results are ordered by appointment date and start time, ascending.
+- The response exposes only `patientId` and Patient full name for clinical identification; Patient contact/profile fields and internal User data are excluded.
+- `DoctorAppointmentQueryServiceTest` and `DoctorAppointmentControllerTest` pass (4 tests total).
+
+### Receptionist appointment list
+
+- `GET /api/v1/receptionist/appointments` is implemented and requires role `RECEPTIONIST`.
+- The endpoint supports optional `date`, `doctorId`, `patientId`, `status`, `page`, and `size` filters.
+- Results are ordered by appointment date and start time, ascending.
+- The response includes only operational Patient/Doctor identifiers and names; contact/profile fields and internal User data are excluded.
+- `ReceptionistAppointmentControllerTest` passes (2 tests total).
+
+### Appointment confirmation and cancellation
+
+- `POST /api/v1/appointments/{appointmentId}/confirm` is implemented for `RECEPTIONIST`; only `PENDING` appointments can transition to `CONFIRMED` and receive `confirmedAt`.
+- Patient cancellation endpoint enforces ownership, `PENDING`/`CONFIRMED` status, and a 2-hour deadline.
+- Receptionist cancellation endpoint accepts the same cancellable statuses but has no 2-hour deadline.
+- Both cancellation flows retain the appointment history and store cancellation reason, time, and actor.
+- Targeted controller and service tests for confirmation and cancellation pass.
+
+### Medical record creation and appointment completion
+
+- `POST /api/v1/appointments/{appointmentId}/medical-record` is implemented and requires role `DOCTOR`.
+- The Doctor identity is derived from JWT; the appointment must belong to that Doctor, be `CONFIRMED`, have reached its start time, and not already have a Medical Record.
+- MedicalRecord creation and the `COMPLETED` Appointment transition are executed in one transaction.
+- `MedicalRecordServiceTest` and `MedicalRecordControllerTest` pass (5 tests total).
+
 ## API Documentation
 
 `docs/07-rest-api-design.md` now defines that successful endpoints return endpoint-specific response DTOs, except endpoints explicitly designed as `204 No Content`.
@@ -154,9 +194,9 @@ com.tranminh.medicalclinic/
 
 ## Next Task
 
-Implement the Patient's own appointment list:
+Implement prescription creation for a Medical Record:
 
-1. Read the Patient appointment-list sections of `docs/02`, `docs/03`, `docs/04`, and `docs/07`.
-2. Complete the response DTO and pagination/filter contract for `GET /api/v1/appointments/me` if needed.
-3. Implement the endpoint for role `PATIENT`, deriving the Patient identity exclusively from JWT authentication.
-4. Support the documented optional `status`, `fromDate`, `toDate`, `page`, `size`, and `sort` parameters without exposing internal User data.
+1. Read prescription sections of `docs/02`, `docs/03`, `docs/05`, `docs/06`, and `docs/07`.
+2. Complete request/response/error contracts for `POST /api/v1/medical-records/{medicalRecordId}/prescription`.
+3. Implement creation for `DOCTOR` only, ensuring the Medical Record belongs to an appointment of that Doctor.
+4. Validate medicines and quantities, create at most one Prescription per Medical Record, and persist PrescriptionDetails transactionally.

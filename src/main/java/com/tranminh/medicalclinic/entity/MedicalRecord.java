@@ -46,6 +46,48 @@ public class MedicalRecord {
     protected MedicalRecord() {
     }
 
+    public MedicalRecord(
+            Appointment appointment,
+            String symptoms,
+            String diagnosis,
+            String treatment,
+            String notes
+    ) {
+        this.appointment = appointment;
+        this.symptoms = symptoms;
+        this.diagnosis = diagnosis;
+        this.treatment = treatment;
+        this.notes = notes;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public Appointment getAppointment() {
+        return appointment;
+    }
+
+    public String getSymptoms() {
+        return symptoms;
+    }
+
+    public String getDiagnosis() {
+        return diagnosis;
+    }
+
+    public String getTreatment() {
+        return treatment;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
     @PrePersist
     private void onCreate() {
         LocalDateTime now = LocalDateTime.now();

@@ -276,6 +276,30 @@ Response:
 200 OK
 ```
 
+Response body: `MedicalRecordResponse`
+
+```json
+{
+  "medicalRecordId": 55,
+  "appointmentId": 101,
+  "symptoms": "Fever",
+  "diagnosis": "Flu",
+  "treatment": "Rest",
+  "notes": "Observe",
+  "createdAt": "2026-09-10T09:00:00"
+}
+```
+
+Errors:
+
+```text
+404 APPOINTMENT_NOT_FOUND
+403 DOCTOR_APPOINTMENT_ACCESS_FORBIDDEN
+409 INVALID_APPOINTMENT_STATUS_TRANSITION
+400 APPOINTMENT_TIME_NOT_REACHED
+409 MEDICAL_RECORD_ALREADY_EXISTS
+```
+
 Response body: `LoginResponse`
 
 `RefreshTokenRequest` chỉ chứa refresh token. Refresh token hợp lệ cấp một cặp access token và refresh token mới.
@@ -913,6 +937,41 @@ Filter:
 &sort=appointmentDate,desc
 ```
 
+Response: `200 OK` — `PatientAppointmentPageResponse`
+
+```json
+{
+  "content": [
+    {
+      "appointmentId": 101,
+      "doctorId": 5,
+      "doctorFullName": "Dr. Nguyen Van B",
+      "doctorSpecialty": "Internal Medicine",
+      "appointmentDate": "2026-09-10",
+      "startTime": "10:00:00",
+      "endTime": "10:30:00",
+      "status": "PENDING",
+      "reason": "Persistent headache",
+      "createdAt": "2026-09-04T10:00:00"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+Only `appointmentDate,asc` and `appointmentDate,desc` are accepted for `sort`; `appointmentDate,desc` is the default. The Patient identity is always derived from JWT.
+
+Errors:
+
+```text
+400 INVALID_APPOINTMENT_DATE_RANGE
+400 INVALID_APPOINTMENT_SORT
+404 PATIENT_PROFILE_NOT_FOUND
+```
+
 ---
 
 ## Doctor views own appointments
@@ -937,6 +996,39 @@ Doctor identity lấy từ authenticated user, không nhận doctorId từ clien
 
 ---
 
+Response: `200 OK` — `DoctorAppointmentPageResponse`
+
+```json
+{
+  "content": [
+    {
+      "appointmentId": 101,
+      "patientId": 10,
+      "patientFullName": "Nguyen Van A",
+      "appointmentDate": "2026-09-10",
+      "startTime": "10:00:00",
+      "endTime": "10:30:00",
+      "status": "CONFIRMED",
+      "reason": "Persistent headache",
+      "createdAt": "2026-09-04T10:00:00"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+Results are ordered by `appointmentDate` and `startTime`, ascending. The response excludes Patient phone, date of birth, address, and internal User fields.
+
+Errors:
+
+```text
+403 ACCOUNT_INACTIVE
+404 DOCTOR_PROFILE_NOT_FOUND
+```
+
 ## Receptionist manages appointment list
 
 ```text
@@ -959,6 +1051,37 @@ Filter:
 &page=0
 &size=20
 ```
+
+---
+
+Response: `200 OK` — `ReceptionistAppointmentPageResponse`
+
+```json
+{
+  "content": [
+    {
+      "appointmentId": 101,
+      "patientId": 10,
+      "patientFullName": "Nguyen Van A",
+      "doctorId": 5,
+      "doctorFullName": "Dr. Nguyen Van B",
+      "doctorSpecialty": "Internal Medicine",
+      "appointmentDate": "2026-09-10",
+      "startTime": "10:00:00",
+      "endTime": "10:30:00",
+      "status": "PENDING",
+      "reason": "Persistent headache",
+      "createdAt": "2026-09-04T10:00:00"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+Results are ordered by `appointmentDate` and `startTime`, ascending. The response excludes Patient contact/profile fields and all internal User fields.
 
 ---
 
@@ -997,6 +1120,44 @@ Errors:
 ---
 
 # 13. Cancel Appointment
+
+```text
+POST /api/v1/appointments/{appointmentId}/cancel
+```
+
+Role: `PATIENT`
+
+```text
+POST /api/v1/receptionist/appointments/{appointmentId}/cancel
+```
+
+Role: `RECEPTIONIST`
+
+Request: `CancelAppointmentRequest`
+
+```json
+{
+  "reason": "Unexpected work"
+}
+```
+
+Success: `200 OK` with no response body.
+
+Rules:
+
+- only `PENDING` or `CONFIRMED` appointments can be cancelled;
+- Patient can cancel only their own appointment and only at least 2 hours before it starts;
+- Receptionist can cancel an appointment without the 2-hour deadline;
+- the appointment remains in history with status `CANCELLED`, cancellation reason, time, and actor.
+
+Errors:
+
+```text
+404 APPOINTMENT_NOT_FOUND
+403 APPOINTMENT_OWNERSHIP_FORBIDDEN
+409 INVALID_APPOINTMENT_STATUS_TRANSITION
+409 APPOINTMENT_CANCELLATION_DEADLINE_PASSED
+```
 
 Thay vì hai URL khác nhau, có thể dùng cùng action endpoint:
 

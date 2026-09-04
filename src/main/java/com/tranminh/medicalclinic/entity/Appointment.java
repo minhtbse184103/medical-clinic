@@ -130,6 +130,27 @@ public class Appointment {
         return createdAt;
     }
 
+    public LocalDateTime getConfirmedAt() {
+        return confirmedAt;
+    }
+
+    public void confirm(LocalDateTime confirmedAt) {
+        this.status = AppointmentStatus.CONFIRMED;
+        this.confirmedAt = confirmedAt;
+    }
+
+    public void cancel(User cancelledBy, String cancelReason, LocalDateTime cancelledAt) {
+        this.status = AppointmentStatus.CANCELLED;
+        this.cancelledBy = cancelledBy;
+        this.cancelReason = cancelReason;
+        this.cancelledAt = cancelledAt;
+    }
+
+    public void complete(LocalDateTime completedAt) {
+        this.status = AppointmentStatus.COMPLETED;
+        this.completedAt = completedAt;
+    }
+
     @PrePersist
     private void onCreate() {
         LocalDateTime now = LocalDateTime.now();

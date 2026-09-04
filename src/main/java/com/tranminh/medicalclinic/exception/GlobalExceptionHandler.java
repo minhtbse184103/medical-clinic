@@ -114,6 +114,20 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(DoctorProfileNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleDoctorProfileNotFound(
+            DoctorProfileNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                "DOCTOR_PROFILE_NOT_FOUND",
+                exception.getMessage(),
+                request.getRequestURI(),
+                null
+        );
+    }
+
     @ExceptionHandler(DoctorScheduleInvalidTimeRangeException.class)
     public ResponseEntity<ApiErrorResponse> handleDoctorScheduleInvalidTimeRange(
             DoctorScheduleInvalidTimeRangeException exception,
@@ -194,6 +208,57 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return buildResponse(HttpStatus.CONFLICT, "PATIENT_TIME_CONFLICT", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(InvalidAppointmentDateRangeException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidAppointmentDateRange(
+            InvalidAppointmentDateRangeException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_APPOINTMENT_DATE_RANGE", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(AppointmentNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleAppointmentNotFound(AppointmentNotFoundException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "APPOINTMENT_NOT_FOUND", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(InvalidAppointmentStatusTransitionException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidAppointmentStatusTransition(InvalidAppointmentStatusTransitionException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "INVALID_APPOINTMENT_STATUS_TRANSITION", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(AppointmentOwnershipException.class)
+    public ResponseEntity<ApiErrorResponse> handleAppointmentOwnership(AppointmentOwnershipException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "APPOINTMENT_OWNERSHIP_FORBIDDEN", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(DoctorAppointmentAccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleDoctorAppointmentAccess(DoctorAppointmentAccessDeniedException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "DOCTOR_APPOINTMENT_ACCESS_FORBIDDEN", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(MedicalRecordAlreadyExistsException.class)
+    public ResponseEntity<ApiErrorResponse> handleMedicalRecordAlreadyExists(MedicalRecordAlreadyExistsException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "MEDICAL_RECORD_ALREADY_EXISTS", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(AppointmentTimeNotReachedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAppointmentTimeNotReached(AppointmentTimeNotReachedException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "APPOINTMENT_TIME_NOT_REACHED", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(AppointmentCancellationDeadlinePassedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAppointmentCancellationDeadline(AppointmentCancellationDeadlinePassedException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.CONFLICT, "APPOINTMENT_CANCELLATION_DEADLINE_PASSED", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(InvalidAppointmentSortException.class)
+    public ResponseEntity<ApiErrorResponse> handleInvalidAppointmentSort(
+            InvalidAppointmentSortException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_APPOINTMENT_SORT", exception.getMessage(), request.getRequestURI(), null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
