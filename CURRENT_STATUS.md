@@ -5,12 +5,21 @@ Last updated: 2026-09-04
 ## Repository
 
 Project path:
-`D:\project-java\medical-clinic\medical-clinic`
+`D:\project-java\medical-clinic\medical-clinic\backend`
 
 Git branch: `main`
 
 Canonical Java package:
 `com.tranminh.medicalclinic`
+
+Repository layout:
+
+```text
+medical-clinic/
+├── backend/   Spring Boot REST API
+├── frontend/  reserved for the future frontend application
+└── docs/      shared project documentation
+```
 
 ## Environment Verified
 

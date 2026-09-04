@@ -76,9 +76,9 @@ Do not reintroduce com.tranminh.medical_clinic.
 
 Project Structure
 
-Use this structure as the default organization. Do not create empty packages merely to match the diagram; create them when they are actually needed.
+This repository is a monorepo. The Spring Boot project lives in `backend/`; `frontend/` is reserved for a later frontend application, while shared design documents remain in the root `docs/` directory. Do not create empty packages merely to match the diagram; create them when they are actually needed.
 
-src/main/java/com/tranminh/medicalclinic/
+backend/src/main/java/com/tranminh/medicalclinic/
 ├── config/
 ├── controller/
 ├── dto/
@@ -92,12 +92,12 @@ src/main/java/com/tranminh/medicalclinic/
 ├── service/
 └── MedicalClinicApplication.java
 
-src/main/resources/
+backend/src/main/resources/
 ├── db/
 │   └── migration/
 └── application.yml
 
-src/test/java/com/tranminh/medicalclinic/
+backend/src/test/java/com/tranminh/medicalclinic/
 └── ...
 
 docs/
