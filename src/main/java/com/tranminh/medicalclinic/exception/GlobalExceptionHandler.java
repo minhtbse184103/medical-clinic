@@ -114,6 +114,14 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(StaffNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleStaffNotFound(
+            StaffNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, "STAFF_NOT_FOUND", exception.getMessage(), request.getRequestURI(), null);
+    }
+
     @ExceptionHandler(DoctorProfileNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleDoctorProfileNotFound(
             DoctorProfileNotFoundException exception,
@@ -164,6 +172,20 @@ public class GlobalExceptionHandler {
         return buildResponse(
                 HttpStatus.NOT_FOUND,
                 "DOCTOR_SCHEDULE_NOT_FOUND",
+                exception.getMessage(),
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(DoctorScheduleHasActiveAppointmentsException.class)
+    public ResponseEntity<ApiErrorResponse> handleDoctorScheduleHasActiveAppointments(
+            DoctorScheduleHasActiveAppointmentsException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                "DOCTOR_SCHEDULE_HAS_ACTIVE_APPOINTMENTS",
                 exception.getMessage(),
                 request.getRequestURI(),
                 null
@@ -238,6 +260,22 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "DOCTOR_APPOINTMENT_ACCESS_FORBIDDEN", exception.getMessage(), request.getRequestURI(), null);
     }
 
+    @ExceptionHandler(DoctorPatientMedicalRecordAccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleDoctorPatientMedicalRecordAccess(
+            DoctorPatientMedicalRecordAccessDeniedException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.FORBIDDEN, "DOCTOR_PATIENT_MEDICAL_RECORD_ACCESS_FORBIDDEN", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(PatientNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handlePatientNotFound(
+            PatientNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, "PATIENT_NOT_FOUND", exception.getMessage(), request.getRequestURI(), null);
+    }
+
     @ExceptionHandler(MedicalRecordAlreadyExistsException.class)
     public ResponseEntity<ApiErrorResponse> handleMedicalRecordAlreadyExists(MedicalRecordAlreadyExistsException exception, HttpServletRequest request) {
         return buildResponse(HttpStatus.CONFLICT, "MEDICAL_RECORD_ALREADY_EXISTS", exception.getMessage(), request.getRequestURI(), null);
@@ -246,6 +284,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PrescriptionAlreadyExistsException.class)
     public ResponseEntity<ApiErrorResponse> handlePrescriptionAlreadyExists(PrescriptionAlreadyExistsException exception, HttpServletRequest request) {
         return buildResponse(HttpStatus.CONFLICT, "PRESCRIPTION_ALREADY_EXISTS", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(PrescriptionNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handlePrescriptionNotFound(PrescriptionNotFoundException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND, "PRESCRIPTION_NOT_FOUND", exception.getMessage(), request.getRequestURI(), null);
+    }
+
+    @ExceptionHandler(PrescriptionAccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handlePrescriptionAccessDenied(PrescriptionAccessDeniedException exception, HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "PRESCRIPTION_ACCESS_FORBIDDEN", exception.getMessage(), request.getRequestURI(), null);
     }
 
     @ExceptionHandler(MedicineNotAvailableException.class)

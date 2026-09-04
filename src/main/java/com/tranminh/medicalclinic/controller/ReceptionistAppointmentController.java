@@ -2,6 +2,8 @@ package com.tranminh.medicalclinic.controller;
 
 import com.tranminh.medicalclinic.dto.response.ReceptionistAppointmentPageResponse;
 import com.tranminh.medicalclinic.dto.request.CancelAppointmentRequest;
+import com.tranminh.medicalclinic.dto.request.CreateReceptionistAppointmentRequest;
+import com.tranminh.medicalclinic.dto.response.AppointmentResponse;
 import com.tranminh.medicalclinic.enums.AppointmentStatus;
 import com.tranminh.medicalclinic.service.ReceptionistAppointmentQueryService;
 import com.tranminh.medicalclinic.service.ReceptionistAppointmentCancellationService;
@@ -10,6 +12,8 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,13 +31,23 @@ public class ReceptionistAppointmentController {
 
     private final ReceptionistAppointmentQueryService receptionistAppointmentQueryService;
     private final ReceptionistAppointmentCancellationService receptionistAppointmentCancellationService;
+    private final com.tranminh.medicalclinic.service.AppointmentBookingService appointmentBookingService;
 
     public ReceptionistAppointmentController(
             ReceptionistAppointmentQueryService receptionistAppointmentQueryService,
-            ReceptionistAppointmentCancellationService receptionistAppointmentCancellationService
+            ReceptionistAppointmentCancellationService receptionistAppointmentCancellationService,
+            com.tranminh.medicalclinic.service.AppointmentBookingService appointmentBookingService
     ) {
         this.receptionistAppointmentQueryService = receptionistAppointmentQueryService;
         this.receptionistAppointmentCancellationService = receptionistAppointmentCancellationService;
+        this.appointmentBookingService = appointmentBookingService;
+    }
+
+    @PostMapping
+    public ResponseEntity<AppointmentResponse> createAppointment(
+            @Valid @RequestBody CreateReceptionistAppointmentRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(appointmentBookingService.bookAppointmentForPatient(request));
     }
 
     @GetMapping

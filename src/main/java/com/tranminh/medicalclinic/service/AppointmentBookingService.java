@@ -1,6 +1,7 @@
 package com.tranminh.medicalclinic.service;
 
 import com.tranminh.medicalclinic.dto.request.CreateAppointmentRequest;
+import com.tranminh.medicalclinic.dto.request.CreateReceptionistAppointmentRequest;
 import com.tranminh.medicalclinic.dto.response.AppointmentResponse;
 import com.tranminh.medicalclinic.entity.Appointment;
 import com.tranminh.medicalclinic.entity.Doctor;
@@ -62,18 +63,35 @@ public class AppointmentBookingService {
     public AppointmentResponse bookAppointment(Long userId, CreateAppointmentRequest request) {
         Patient patient = patientRepository.findByUser_Id(userId)
                 .orElseThrow(() -> new PatientProfileNotFoundException(userId));
+        return book(patient, request.doctorId(), request.appointmentDate(), request.startTime(), request.reason());
+    }
+
+    @Transactional
+    public AppointmentResponse bookAppointmentForPatient(CreateReceptionistAppointmentRequest request) {
+        Patient patient = patientRepository.findById(request.patientId())
+                .orElseThrow(() -> new com.tranminh.medicalclinic.exception.PatientNotFoundException(request.patientId()));
+        return book(patient, request.doctorId(), request.appointmentDate(), request.startTime(), request.reason());
+    }
+
+    private AppointmentResponse book(
+            Patient patient,
+            Long doctorId,
+            java.time.LocalDate appointmentDate,
+            LocalTime startTime,
+            String reason
+    ) {
         if (patient.getUser().getStatus() != UserStatus.ACTIVE) {
             throw new AccountInactiveException();
         }
 
-        Doctor doctor = doctorRepository.findById(request.doctorId())
-                .orElseThrow(() -> new DoctorNotFoundException(request.doctorId()));
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new DoctorNotFoundException(doctorId));
         if (doctor.getUser().getStatus() != UserStatus.ACTIVE) {
-            throw new DoctorNotAvailableException(request.doctorId());
+            throw new DoctorNotAvailableException(doctorId);
         }
 
-        LocalTime endTime = request.startTime().plusMinutes(SLOT_DURATION_MINUTES);
-        if (!LocalDateTime.of(request.appointmentDate(), request.startTime())
+        LocalTime endTime = startTime.plusMinutes(SLOT_DURATION_MINUTES);
+        if (!LocalDateTime.of(appointmentDate, startTime)
                 .isAfter(LocalDateTime.now(clock))) {
             throw new AppointmentTimePassedException();
         }
@@ -81,18 +99,18 @@ public class AppointmentBookingService {
         boolean belongsToSchedule = doctorScheduleRepository
                 .findByDoctor_IdAndDayOfWeekOrderByStartTime(
                         doctor.getId(),
-                        request.appointmentDate().getDayOfWeek()
+                        appointmentDate.getDayOfWeek()
                 )
                 .stream()
-                .anyMatch(schedule -> isWithinSchedule(schedule, request.startTime(), endTime));
+                .anyMatch(schedule -> isWithinSchedule(schedule, startTime, endTime));
         if (!belongsToSchedule) {
             throw new AppointmentSlotNotAvailableException();
         }
 
         if (appointmentRepository.existsByDoctor_IdAndAppointmentDateAndStartTimeAndStatusIn(
                 doctor.getId(),
-                request.appointmentDate(),
-                request.startTime(),
+                appointmentDate,
+                startTime,
                 ACTIVE_APPOINTMENT_STATUSES
         )) {
             throw new AppointmentSlotAlreadyBookedException();
@@ -100,8 +118,8 @@ public class AppointmentBookingService {
 
         if (appointmentRepository.existsByPatient_IdAndAppointmentDateAndStartTimeAndStatusIn(
                 patient.getId(),
-                request.appointmentDate(),
-                request.startTime(),
+                appointmentDate,
+                startTime,
                 ACTIVE_APPOINTMENT_STATUSES
         )) {
             throw new PatientTimeConflictException();
@@ -110,11 +128,11 @@ public class AppointmentBookingService {
         Appointment appointment = new Appointment(
                 patient,
                 doctor,
-                request.appointmentDate(),
-                request.startTime(),
+                appointmentDate,
+                startTime,
                 endTime,
                 AppointmentStatus.PENDING,
-                request.reason()
+                reason
         );
 
         try {

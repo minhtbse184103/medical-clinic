@@ -73,6 +73,10 @@ public class User {
         return status;
     }
 
+    public void changeStatus(UserStatus status) {
+        this.status = status;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }

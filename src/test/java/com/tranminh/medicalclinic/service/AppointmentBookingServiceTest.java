@@ -1,6 +1,7 @@
 package com.tranminh.medicalclinic.service;
 
 import com.tranminh.medicalclinic.dto.request.CreateAppointmentRequest;
+import com.tranminh.medicalclinic.dto.request.CreateReceptionistAppointmentRequest;
 import com.tranminh.medicalclinic.dto.response.AppointmentResponse;
 import com.tranminh.medicalclinic.entity.Appointment;
 import com.tranminh.medicalclinic.entity.Doctor;
@@ -79,6 +80,30 @@ class AppointmentBookingServiceTest {
         assertEquals(PATIENT_ID, response.patientId());
         assertEquals(DOCTOR_ID, response.doctorId());
         assertEquals(LocalTime.of(10, 30), response.endTime());
+        assertEquals(AppointmentStatus.PENDING, response.status());
+    }
+
+    @Test
+    void bookAppointmentForPatient_createsPendingAppointmentForReceptionistFlow() {
+        Patient patient = patient();
+        when(patientRepository.findById(PATIENT_ID)).thenReturn(Optional.of(patient));
+        when(doctorRepository.findById(DOCTOR_ID)).thenReturn(Optional.of(doctor()));
+        when(doctorScheduleRepository.findByDoctor_IdAndDayOfWeekOrderByStartTime(DOCTOR_ID, DayOfWeek.FRIDAY))
+                .thenReturn(List.of(schedule(LocalTime.of(8, 0), LocalTime.of(12, 0))));
+        when(appointmentRepository.existsByDoctor_IdAndAppointmentDateAndStartTimeAndStatusIn(any(), any(), any(), any())).thenReturn(false);
+        when(appointmentRepository.existsByPatient_IdAndAppointmentDateAndStartTimeAndStatusIn(any(), any(), any(), any())).thenReturn(false);
+        when(appointmentRepository.saveAndFlush(any(Appointment.class))).thenAnswer(invocation -> {
+            Appointment appointment = invocation.getArgument(0);
+            ReflectionTestUtils.setField(appointment, "id", 102L);
+            ReflectionTestUtils.setField(appointment, "createdAt", LocalDateTime.of(2026, 9, 10, 9, 0));
+            return appointment;
+        });
+
+        AppointmentResponse response = appointmentBookingService.bookAppointmentForPatient(
+                new CreateReceptionistAppointmentRequest(PATIENT_ID, DOCTOR_ID, DATE, LocalTime.of(10, 0), "Walk-in")
+        );
+
+        assertEquals(PATIENT_ID, response.patientId());
         assertEquals(AppointmentStatus.PENDING, response.status());
     }
 
