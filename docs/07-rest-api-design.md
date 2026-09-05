@@ -506,9 +506,15 @@ Response body: `StaffResponse`
   "email": "receptionist@example.com",
   "role": "RECEPTIONIST",
   "status": "ACTIVE",
-  "createdAt": "2026-09-04T14:00:00"
+  "createdAt": "2026-09-04T14:00:00",
+  "fullName": null,
+  "specialty": null,
+  "licenseNumber": null
 }
 ```
+
+`fullName`, `specialty` and `licenseNumber` come from the Doctor profile and are `null` for a
+`RECEPTIONIST`, which has no profile table in the MVP.
 
 Errors:
 
@@ -542,12 +548,25 @@ Response: `200 OK` - `StaffPageResponse`
       "email": "receptionist@example.com",
       "role": "RECEPTIONIST",
       "status": "ACTIVE",
-      "createdAt": "2026-09-04T14:00:00"
+      "createdAt": "2026-09-04T14:00:00",
+      "fullName": null,
+      "specialty": null,
+      "licenseNumber": null
+    },
+    {
+      "userId": 4,
+      "email": "doctor@example.com",
+      "role": "DOCTOR",
+      "status": "ACTIVE",
+      "createdAt": "2026-09-04T14:00:00",
+      "fullName": "Nguyen Van An",
+      "specialty": "Nội tổng quát",
+      "licenseNumber": "LIC-0001"
     }
   ],
   "page": 0,
   "size": 20,
-  "totalElements": 1,
+  "totalElements": 2,
   "totalPages": 1
 }
 ```

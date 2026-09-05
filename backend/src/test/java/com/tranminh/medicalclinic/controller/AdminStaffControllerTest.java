@@ -57,7 +57,9 @@ class AdminStaffControllerTest {
     }
 
     private StaffResponse response() {
-        return new StaffResponse(3L, "receptionist@example.com", Role.RECEPTIONIST, UserStatus.ACTIVE, null);
+        return new StaffResponse(
+                3L, "receptionist@example.com", Role.RECEPTIONIST, UserStatus.ACTIVE, null,
+                null, null, null);
     }
 
     private UsernamePasswordAuthenticationToken user(Long id, String role) {

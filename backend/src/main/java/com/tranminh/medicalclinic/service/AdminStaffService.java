@@ -3,11 +3,13 @@ package com.tranminh.medicalclinic.service;
 import com.tranminh.medicalclinic.dto.request.CreateReceptionistRequest;
 import com.tranminh.medicalclinic.dto.response.StaffPageResponse;
 import com.tranminh.medicalclinic.dto.response.StaffResponse;
+import com.tranminh.medicalclinic.entity.Doctor;
 import com.tranminh.medicalclinic.entity.User;
 import com.tranminh.medicalclinic.enums.Role;
 import com.tranminh.medicalclinic.enums.UserStatus;
 import com.tranminh.medicalclinic.exception.EmailAlreadyExistsException;
 import com.tranminh.medicalclinic.exception.StaffNotFoundException;
+import com.tranminh.medicalclinic.repository.DoctorRepository;
 import com.tranminh.medicalclinic.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,10 +22,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminStaffService {
 
     private final UserRepository userRepository;
+    private final DoctorRepository doctorRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public AdminStaffService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AdminStaffService(
+            UserRepository userRepository,
+            DoctorRepository doctorRepository,
+            PasswordEncoder passwordEncoder
+    ) {
         this.userRepository = userRepository;
+        this.doctorRepository = doctorRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -34,7 +42,7 @@ public class AdminStaffService {
         }
         return toResponse(userRepository.save(new User(
                 request.email(), passwordEncoder.encode(request.temporaryPassword()), Role.RECEPTIONIST
-        )));
+        )), null);
     }
 
     @Transactional(readOnly = true)
@@ -45,7 +53,22 @@ public class AdminStaffService {
                 status,
                 PageRequest.of(page, size, Sort.by("createdAt").descending())
         );
-        return new StaffPageResponse(staff.getContent().stream().map(this::toResponse).toList(), staff.getNumber(), staff.getSize(), staff.getTotalElements(), staff.getTotalPages());
+        // One lookup for the whole page rather than one per doctor row.
+        java.util.List<Long> doctorUserIds = staff.getContent().stream()
+                .filter(user -> user.getRole() == Role.DOCTOR)
+                .map(User::getId)
+                .toList();
+        java.util.Map<Long, Doctor> profiles = doctorUserIds.isEmpty()
+                ? java.util.Map.of()
+                : doctorRepository.findByUser_IdIn(doctorUserIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                doctor -> doctor.getUser().getId(), doctor -> doctor));
+
+        return new StaffPageResponse(
+                staff.getContent().stream()
+                        .map(user -> toResponse(user, profiles.get(user.getId())))
+                        .toList(),
+                staff.getNumber(), staff.getSize(), staff.getTotalElements(), staff.getTotalPages());
     }
 
     @Transactional
@@ -64,10 +87,19 @@ public class AdminStaffService {
             throw new StaffNotFoundException(userId);
         }
         user.changeStatus(status);
-        return toResponse(user);
+        return toResponse(
+                user,
+                user.getRole() == Role.DOCTOR
+                        ? doctorRepository.findByUser_Id(userId).orElse(null)
+                        : null);
     }
 
-    private StaffResponse toResponse(User user) {
-        return new StaffResponse(user.getId(), user.getEmail(), user.getRole(), user.getStatus(), user.getCreatedAt());
+    /** {@code doctor} is null for a RECEPTIONIST, which has no profile in the MVP. */
+    private StaffResponse toResponse(User user, Doctor doctor) {
+        return new StaffResponse(
+                user.getId(), user.getEmail(), user.getRole(), user.getStatus(), user.getCreatedAt(),
+                doctor == null ? null : doctor.getFullName(),
+                doctor == null ? null : doctor.getSpecialty(),
+                doctor == null ? null : doctor.getLicenseNumber());
     }
 }

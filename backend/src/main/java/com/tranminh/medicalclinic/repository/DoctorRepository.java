@@ -8,11 +8,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface DoctorRepository extends JpaRepository<Doctor, Long> {
 
     Optional<Doctor> findByUser_Id(Long userId);
+
+    /** Resolves a page of staff users to their Doctor profiles in one query, not one each. */
+    List<Doctor> findByUser_IdIn(Collection<Long> userIds);
 
     boolean existsByLicenseNumber(String licenseNumber);
 

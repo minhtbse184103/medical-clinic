@@ -1,33 +1,48 @@
 import {
+  IdcardOutlined,
+  LockOutlined,
+  MedicineBoxOutlined,
+  SafetyCertificateOutlined,
+  TeamOutlined,
+  UnlockOutlined,
+  UserAddOutlined,
+} from '@ant-design/icons';
+import {
   Alert,
   App as AntdApp,
+  Avatar,
+  Breadcrumb,
   Button,
   Card,
-  Flex,
+  Col,
   Form,
   Input,
   Modal,
   Popconfirm,
+  Row,
   Select,
   Space,
   Table,
   Tag,
+  Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { adminApi } from '../api/admin';
 import { PageHeader } from '../components/PageHeader';
+import { StatCard } from '../components/StatCard';
 import { errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
-import { formatDateTime } from '../lib/datetime';
+import { formatDate } from '../lib/datetime';
 import {
   DEFAULT_PAGE_QUERY,
   fromTablePagination,
   toTablePagination,
   type PageQuery,
 } from '../lib/pagination';
+import { initials } from '../lib/user';
 import type {
   CreateDoctorRequest,
   CreateReceptionistRequest,
@@ -56,7 +71,7 @@ const STATUS_OPTIONS = [
 type CreateMode = 'DOCTOR' | 'RECEPTIONIST' | null;
 
 export function AdminStaffPage() {
-  const [pageQuery, setPageQuery] = useState<PageQuery>(DEFAULT_PAGE_QUERY);
+  const [pageQuery, setPageQuery] = useState<PageQuery>({ ...DEFAULT_PAGE_QUERY, size: 10 });
   const [filters, setFilters] = useState<{ role?: Role; status?: UserStatus }>({});
   const [createMode, setCreateMode] = useState<CreateMode>(null);
   const [doctorForm] = Form.useForm<CreateDoctorRequest>();
@@ -72,7 +87,29 @@ export function AdminStaffPage() {
     placeholderData: keepPreviousData,
   });
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['admin-staff'] });
+  /* Headline numbers, each the cheapest count the API allows: one row, totalElements only. */
+  const [totalStaff, activeDoctors, allDoctors, activeDesk, allDesk, locked] = useQueries({
+    queries: (
+      [
+        {},
+        { role: 'DOCTOR', status: 'ACTIVE' },
+        { role: 'DOCTOR' },
+        { role: 'RECEPTIONIST', status: 'ACTIVE' },
+        { role: 'RECEPTIONIST' },
+        { status: 'INACTIVE' },
+      ] as Partial<StaffQuery>[]
+    ).map((stat) => ({
+      queryKey: ['admin-staff-count', stat],
+      queryFn: () => adminApi.staff({ page: 0, size: 1, ...stat }),
+      select: (page: { totalElements: number }) => page.totalElements,
+    })),
+  });
+
+  const invalidate = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['admin-staff'] }),
+      queryClient.invalidateQueries({ queryKey: ['admin-staff-count'] }),
+    ]);
 
   const applyFilter = (next: Partial<typeof filters>) => {
     setFilters((current) => ({ ...current, ...next }));
@@ -118,42 +155,85 @@ export function AdminStaffPage() {
     mutationFn: ({ userId, activate }: { userId: number; activate: boolean }) =>
       activate ? adminApi.activate(userId) : adminApi.deactivate(userId),
     onSuccess: async (staff) => {
-      message.success(
-        staff.status === 'ACTIVE' ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.',
-      );
+      message.success(staff.status === 'ACTIVE' ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.');
       await invalidate();
     },
     onError: (statusError) => message.error(errorMessage(statusError)),
   });
 
   const columns: ColumnsType<Staff> = [
-    { title: 'Email', dataIndex: 'email', key: 'email' },
     {
-      title: 'Vai trò',
-      dataIndex: 'role',
-      key: 'role',
-      render: (role: Role) => <Tag color="blue">{ROLE_LABEL[role] ?? role}</Tag>,
+      title: 'NHÂN VIÊN & EMAIL ĐĂNG NHẬP',
+      key: 'identity',
+      render: (_, staff) => {
+        const locked = staff.status !== 'ACTIVE';
+        return (
+          <Space size={10}>
+            <Avatar style={{ background: locked ? '#f2f4f7' : '#e0edff', color: '#1677ff' }}>
+              {initials(staff.fullName ?? staff.email)}
+            </Avatar>
+            <Space direction="vertical" size={0}>
+              {/* A receptionist has no profile row, so only the account email exists. */}
+              <Typography.Text strong delete={locked}>
+                {staff.fullName ?? staff.email}
+              </Typography.Text>
+              <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+                {staff.fullName ? staff.email : 'Tài khoản lễ tân (không có hồ sơ riêng)'}
+              </Typography.Text>
+            </Space>
+          </Space>
+        );
+      },
     },
     {
-      title: 'Trạng thái',
+      title: 'VAI TRÒ',
+      dataIndex: 'role',
+      key: 'role',
+      width: 110,
+      render: (role: Role) => (
+        <Tag color="blue" style={{ marginInlineEnd: 0 }}>
+          {ROLE_LABEL[role] ?? role}
+        </Tag>
+      ),
+    },
+    {
+      title: 'CHUYÊN KHOA / CCHN',
+      key: 'profile',
+      width: 220,
+      render: (_, staff) =>
+        staff.specialty ? (
+          <Space direction="vertical" size={0}>
+            <span>{staff.specialty}</span>
+            <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+              CCHN: {staff.licenseNumber}
+            </Typography.Text>
+          </Space>
+        ) : (
+          <Typography.Text type="secondary">—</Typography.Text>
+        ),
+    },
+    {
+      title: 'TRẠNG THÁI',
       dataIndex: 'status',
       key: 'status',
+      width: 140,
       render: (status: UserStatus) => (
-        <Tag color={status === 'ACTIVE' ? 'green' : 'red'}>
+        <Tag color={status === 'ACTIVE' ? 'green' : 'red'} style={{ marginInlineEnd: 0 }}>
           {status === 'ACTIVE' ? 'Đang hoạt động' : 'Đã khóa'}
         </Tag>
       ),
     },
     {
-      title: 'Ngày tạo',
+      title: 'NGÀY TẠO',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (value: string) => formatDateTime(value),
+      width: 130,
+      render: (value: string) => formatDate(value),
     },
     {
-      title: '',
+      title: 'THAO TÁC QUẢN TRỊ',
       key: 'actions',
-      width: 140,
+      width: 160,
       render: (_, staff) => {
         const activate = staff.status !== 'ACTIVE';
         return (
@@ -168,7 +248,9 @@ export function AdminStaffPage() {
             cancelText="Đóng"
             onConfirm={() => statusMutation.mutate({ userId: staff.userId, activate })}
           >
-            <Button danger={!activate}>{activate ? 'Mở khóa' : 'Khóa'}</Button>
+            <Button danger={!activate} icon={activate ? <UnlockOutlined /> : <LockOutlined />}>
+              {activate ? 'Mở khóa' : 'Khóa'}
+            </Button>
           </Popconfirm>
         );
       },
@@ -176,39 +258,119 @@ export function AdminStaffPage() {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space direction="vertical" size={20} style={{ width: '100%' }}>
+      <Breadcrumb items={[{ title: 'Quản trị hệ thống' }, { title: 'Quản lý tài khoản nhân viên' }]} />
+
       <PageHeader
-        title="Quản lý nhân sự"
-        description="Khóa tài khoản thay vì xóa, để dữ liệu lịch sử được giữ nguyên."
+        title="Quản lý tài khoản nhân viên"
+        description="Tạo tài khoản bác sĩ, lễ tân và khóa hoặc mở khóa quyền truy cập."
         extra={
           <>
-            <Button type="primary" onClick={() => setCreateMode('DOCTOR')}>
+            <Button icon={<UserAddOutlined />} onClick={() => setCreateMode('RECEPTIONIST')}>
+              Thêm lễ tân
+            </Button>
+            <Button
+              type="primary"
+              icon={<MedicineBoxOutlined />}
+              onClick={() => setCreateMode('DOCTOR')}
+            >
               Thêm bác sĩ
             </Button>
-            <Button onClick={() => setCreateMode('RECEPTIONIST')}>Thêm lễ tân</Button>
           </>
         }
       />
 
+      {/* The reason there is no delete button anywhere on this screen. */}
+      <Alert
+        type="info"
+        showIcon
+        icon={<SafetyCertificateOutlined />}
+        message="Khóa tài khoản thay vì xóa"
+        description="Hệ thống không xóa tài khoản nhân sự. Tài khoản bị khóa mất quyền đăng nhập nhưng toàn bộ lịch hẹn, bệnh án và đơn thuốc đã ký vẫn giữ nguyên để đối soát."
+      />
+
       {error && <Alert type="error" showIcon message={errorMessage(error)} />}
 
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} xl={6}>
+          <StatCard
+            title="Tổng số nhân sự"
+            value={totalStaff.data ?? 0}
+            loading={totalStaff.isPending}
+            icon={<TeamOutlined />}
+            footer="Bác sĩ và lễ tân"
+          />
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <StatCard
+            title="Bác sĩ đang hoạt động"
+            value={activeDoctors.data ?? 0}
+            loading={activeDoctors.isPending}
+            icon={<MedicineBoxOutlined />}
+            footer={`trên ${allDoctors.data ?? 0} tài khoản bác sĩ`}
+          />
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <StatCard
+            title="Lễ tân đang hoạt động"
+            value={activeDesk.data ?? 0}
+            loading={activeDesk.isPending}
+            icon={<IdcardOutlined />}
+            footer={`trên ${allDesk.data ?? 0} tài khoản lễ tân`}
+          />
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <StatCard
+            title="Tài khoản đang khóa"
+            value={locked.data ?? 0}
+            loading={locked.isPending}
+            icon={<LockOutlined />}
+            highlight={(locked.data ?? 0) > 0}
+            footer="Không đăng nhập được"
+          />
+        </Col>
+      </Row>
+
       <Card>
-        <Flex gap={16} wrap>
-          <Select
-            allowClear
-            placeholder="Vai trò"
-            style={{ minWidth: 180 }}
-            options={ROLE_OPTIONS}
-            onChange={(role?: Role) => applyFilter({ role })}
-          />
-          <Select
-            allowClear
-            placeholder="Trạng thái"
-            style={{ minWidth: 180 }}
-            options={STATUS_OPTIONS}
-            onChange={(status?: UserStatus) => applyFilter({ status })}
-          />
-        </Flex>
+        <Row gutter={[16, 16]} align="bottom">
+          <Col xs={24} md={8}>
+            <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+              Vai trò
+            </Typography.Text>
+            <Select
+              allowClear
+              placeholder="Tất cả vai trò"
+              style={{ width: '100%', marginTop: 4 }}
+              value={filters.role}
+              options={ROLE_OPTIONS}
+              onChange={(role?: Role) => applyFilter({ role })}
+            />
+          </Col>
+          <Col xs={24} md={8}>
+            <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+              Trạng thái
+            </Typography.Text>
+            <Select
+              allowClear
+              placeholder="Tất cả trạng thái"
+              style={{ width: '100%', marginTop: 4 }}
+              value={filters.status}
+              options={STATUS_OPTIONS}
+              onChange={(status?: UserStatus) => applyFilter({ status })}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <Button
+              block
+              onClick={() => {
+                setFilters({});
+                setPageQuery((current) => ({ ...current, page: 0 }));
+              }}
+            >
+              Đặt lại
+            </Button>
+          </Col>
+        </Row>
       </Card>
 
       <Table<Staff>
@@ -216,7 +378,13 @@ export function AdminStaffPage() {
         columns={columns}
         dataSource={error ? [] : data?.content}
         loading={isFetching}
-        pagination={toTablePagination(data, pageQuery)}
+        scroll={{ x: 1000 }}
+        pagination={{
+          ...toTablePagination(data, pageQuery),
+          pageSizeOptions: [10, 20, 50],
+          showTotal: (count, range) =>
+            `Hiển thị ${range[0]} – ${range[1]} trong tổng số ${count} tài khoản nhân sự`,
+        }}
         onChange={(pagination) => setPageQuery(fromTablePagination(pagination, pageQuery))}
         locale={{ emptyText: error ? 'Không tải được danh sách' : 'Chưa có nhân sự nào' }}
       />
@@ -281,8 +449,8 @@ export function AdminStaffPage() {
 
           <Form.Item
             name="licenseNumber"
-            label="Số giấy phép hành nghề"
-            rules={[{ required: true, message: 'Vui lòng nhập số giấy phép.' }]}
+            label="Số chứng chỉ hành nghề"
+            rules={[{ required: true, message: 'Vui lòng nhập số chứng chỉ.' }]}
             extra="Không được trùng với bác sĩ khác."
           >
             <Input placeholder="LIC-0001" />

@@ -188,6 +188,10 @@ export interface Staff {
   role: Role;
   status: UserStatus;
   createdAt: string;
+  /** From the Doctor profile; null for a RECEPTIONIST, which has no profile in the MVP. */
+  fullName: string | null;
+  specialty: string | null;
+  licenseNumber: string | null;
 }
 
 export interface StaffQuery {
