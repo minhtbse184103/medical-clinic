@@ -1,4 +1,5 @@
-import { Space, Typography } from 'antd';
+import { CalendarOutlined } from '@ant-design/icons';
+import { Flex, Space, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 
 import { useAuth } from '../auth/useAuth';
@@ -6,13 +7,6 @@ import { AdminDashboard } from './dashboard/AdminDashboard';
 import { DoctorDashboard } from './dashboard/DoctorDashboard';
 import { PatientDashboard } from './dashboard/PatientDashboard';
 import { ReceptionistDashboard } from './dashboard/ReceptionistDashboard';
-
-function greeting(hour: number): string {
-  if (hour < 11) return 'Chào buổi sáng';
-  if (hour < 14) return 'Chào buổi trưa';
-  if (hour < 18) return 'Chào buổi chiều';
-  return 'Chào buổi tối';
-}
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -28,12 +22,25 @@ export function DashboardPage() {
     <Space direction="vertical" size={20} style={{ width: '100%' }}>
       {/* The name, role and avatar live in the layout header; repeating them here would
           show the same identity twice on the one screen that has its own heading. */}
-      <div>
-        <Typography.Title level={2} style={{ margin: 0, fontWeight: 700 }}>
-          {greeting(dayjs().hour())}, {displayName}
-        </Typography.Title>
-        <Typography.Text type="secondary">{dayjs().format('dddd, DD/MM/YYYY')}</Typography.Text>
-      </div>
+      <Flex align="flex-start" justify="space-between" gap={16} wrap>
+        <div>
+          <Typography.Title level={3} style={{ margin: 0, fontWeight: 700 }}>
+            Xin chào, {displayName}
+          </Typography.Title>
+          <Space size={8} style={{ color: '#667085', marginTop: 4 }}>
+            <CalendarOutlined />
+            <span>{dayjs().format('dddd, [ngày] DD [tháng] M [năm] YYYY')}</span>
+          </Space>
+        </div>
+
+        {/* Reads the real account status rather than asserting one. */}
+        <Tag
+          color={user.status === 'ACTIVE' ? 'blue' : 'red'}
+          style={{ marginInlineEnd: 0, borderRadius: 999, paddingInline: 12 }}
+        >
+          ● {user.status === 'ACTIVE' ? 'Hồ sơ hoạt động' : 'Hồ sơ đã khóa'}
+        </Tag>
+      </Flex>
 
       {user.role === 'PATIENT' && <PatientDashboard />}
       {user.role === 'DOCTOR' && <DoctorDashboard />}

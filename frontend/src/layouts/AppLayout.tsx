@@ -1,22 +1,34 @@
 import {
   CalendarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
   FileTextOutlined,
+  HomeOutlined,
   IdcardOutlined,
   LogoutOutlined,
   MedicineBoxOutlined,
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { App as AntdApp, Avatar, Dropdown, Layout, Menu } from 'antd';
+import { App as AntdApp, Avatar, Button, Layout, Menu, Space, Tag, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import { Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
+
 import { useAuth } from '../auth/useAuth';
 import { PulseIcon } from '../components/BrandMark';
 import { PageLoading } from '../components/SuspendedPage';
-import { initials, ROLE_LABEL } from '../lib/user';
+import { initials, ROLE_COLOR, ROLE_LABEL } from '../lib/user';
 import type { Role } from '../types/api';
+
+/** Names the area of the system the signed-in role is working in. */
+const PORTAL_LABEL: Record<Role, string> = {
+  PATIENT: 'Cổng thông tin bệnh nhân ngoại trú',
+  DOCTOR: 'Khu vực khám chữa bệnh',
+  RECEPTIONIST: 'Quầy tiếp nhận bệnh nhân',
+  ADMIN: 'Khu vực quản trị hệ thống',
+};
 
 const { Header, Sider, Content } = Layout;
 
@@ -26,12 +38,12 @@ const { Header, Sider, Content } = Layout;
  */
 const MENU_BY_ROLE: Record<Role, MenuProps['items']> = {
   PATIENT: [
-    { key: '/', icon: <UserOutlined />, label: 'Tổng quan' },
-    { key: '/doctors', icon: <TeamOutlined />, label: 'Tìm bác sĩ' },
-    { key: '/appointments', icon: <CalendarOutlined />, label: 'Lịch hẹn của tôi' },
-    { key: '/medical-records', icon: <FileTextOutlined />, label: 'Bệnh án' },
+    { key: '/', icon: <HomeOutlined />, label: 'Trang chủ' },
+    { key: '/doctors', icon: <CalendarOutlined />, label: 'Đặt lịch khám' },
+    { key: '/appointments', icon: <ClockCircleOutlined />, label: 'Lịch hẹn của tôi' },
+    { key: '/medical-records', icon: <FileTextOutlined />, label: 'Bệnh án điện tử' },
     { key: '/prescriptions', icon: <MedicineBoxOutlined />, label: 'Đơn thuốc' },
-    { key: '/profile', icon: <IdcardOutlined />, label: 'Hồ sơ của tôi' },
+    { key: '/profile', icon: <IdcardOutlined />, label: 'Cài đặt tài khoản' },
   ],
   DOCTOR: [
     { key: '/', icon: <UserOutlined />, label: 'Tổng quan' },
@@ -122,28 +134,36 @@ export function AppLayout() {
             background: '#fff',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between',
+            gap: 16,
             paddingInline: 24,
+            borderBottom: '1px solid #eaecf0',
           }}
         >
-          <Dropdown
-            menu={{
-              items: [{ key: 'logout', icon: <LogoutOutlined />, label: 'Đăng xuất' }],
-              onClick: handleLogout,
-            }}
-          >
-            <span
-              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
-            >
-              <span style={{ textAlign: 'right', lineHeight: 1.3 }}>
-                <div style={{ fontWeight: 600 }}>{displayName}</div>
-                <div style={{ fontSize: 12, color: '#667085' }}>{ROLE_LABEL[user.role]}</div>
-              </span>
+          <Space size={8} style={{ color: '#475467' }}>
+            <CheckCircleOutlined style={{ color: '#0d9488' }} />
+            <span>{PORTAL_LABEL[user.role]}</span>
+          </Space>
+
+          <Space size={16} align="center">
+            <Space size={10} align="center">
               <Avatar size={38} style={{ background: '#0d9488', fontWeight: 600 }}>
                 {initials(displayName)}
               </Avatar>
-            </span>
-          </Dropdown>
+              <span style={{ lineHeight: 1.35 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 600 }}>{displayName}</span>
+                  <Tag color={ROLE_COLOR[user.role]} style={{ marginInlineEnd: 0 }}>
+                    {ROLE_LABEL[user.role]}
+                  </Tag>
+                </div>
+              </span>
+            </Space>
+
+            <Tooltip title="Đăng xuất">
+              <Button type="text" icon={<LogoutOutlined />} onClick={handleLogout} />
+            </Tooltip>
+          </Space>
         </Header>
 
         <Content style={{ margin: 24 }}>

@@ -1,12 +1,13 @@
 import {
   CalendarOutlined,
   ClockCircleOutlined,
+  EyeOutlined,
   FileTextOutlined,
   HistoryOutlined,
   MedicineBoxOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { Button, Card, Col, Empty, Row, Space, Tag, Typography } from 'antd';
+import { Button, Card, Col, Descriptions, Empty, Row, Space, Tag, Typography } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import type { ReactNode } from 'react';
@@ -18,8 +19,6 @@ import { DateBadge } from '../../components/DateBadge';
 import { SummaryTile } from '../../components/SummaryTile';
 import { APPOINTMENT_STATUS_COLOR, APPOINTMENT_STATUS_LABEL } from '../../lib/appointmentStatus';
 import { formatDate, formatTime, toApiDate } from '../../lib/datetime';
-
-const MONTH_LABEL = (date: string) => dayjs(date).format('DD [thg] M');
 
 /** Card heading with a leading icon and an optional link on the right. */
 function SectionTitle({ icon, title, color }: { icon: ReactNode; title: string; color: string }) {
@@ -113,8 +112,13 @@ export function PatientDashboard() {
         <Col xs={24} sm={12} xl={6}>
           <SummaryTile
             featured
-            label="Lịch hẹn kế tiếp"
-            value={nextAppointment ? MONTH_LABEL(nextAppointment.appointmentDate) : 'Chưa có'}
+            label="Lịch khám tiếp theo"
+            value={nextAppointment ? formatDate(nextAppointment.appointmentDate) : 'Chưa có'}
+            sub={
+              nextAppointment
+                ? `${formatTime(nextAppointment.startTime)} – ${formatTime(nextAppointment.endTime)} · BS. ${nextAppointment.doctorFullName}`
+                : 'Bạn chưa đặt lịch nào'
+            }
             icon={<CalendarOutlined />}
             loading={upcoming.isPending}
             onClick={() => navigate('/appointments')}
@@ -122,10 +126,12 @@ export function PatientDashboard() {
         </Col>
         <Col xs={24} sm={12} xl={6}>
           <SummaryTile
-            label="Chờ xác nhận"
+            label="Lịch hẹn chờ xác nhận"
             value={pending.data ?? 0}
+            sub={(pending.data ?? 0) > 0 ? 'Đang được lễ tân xử lý' : 'Không có lịch nào chờ'}
             icon={<ClockCircleOutlined />}
-            iconColor="#faad14"
+            iconColor="#d48806"
+            iconBg="#fffbe6"
             loading={pending.isPending}
             onClick={() => navigate('/appointments')}
           />
@@ -134,18 +140,26 @@ export function PatientDashboard() {
           <SummaryTile
             label="Đơn thuốc"
             value={prescriptions.data?.totalElements ?? 0}
+            sub={
+              latestPrescription
+                ? `${latestPrescription.details.length} thuốc trong đơn gần nhất`
+                : 'Chưa có đơn nào'
+            }
             icon={<MedicineBoxOutlined />}
             iconColor="#722ed1"
+            iconBg="#f9f0ff"
             loading={prescriptions.isPending}
             onClick={() => navigate('/prescriptions')}
           />
         </Col>
         <Col xs={24} sm={12} xl={6}>
           <SummaryTile
-            label="Bệnh án"
+            label="Hồ sơ bệnh án"
             value={records.data?.totalElements ?? 0}
+            sub="Cập nhật sau mỗi lần khám"
             icon={<FileTextOutlined />}
-            iconColor="#52c41a"
+            iconColor="#389e0d"
+            iconBg="#f6ffed"
             loading={records.isPending}
             onClick={() => navigate('/medical-records')}
           />
@@ -267,19 +281,36 @@ export function PatientDashboard() {
                           {detail.medicineName} {detail.dosage}
                         </Typography.Text>
                         {/* Quantity, not a status: a prescription line has no active flag. */}
-                        <Tag color="purple" style={{ marginInlineEnd: 0, flexShrink: 0 }}>
-                          SL {detail.quantity}
+                        <Tag color="blue" style={{ marginInlineEnd: 0, flexShrink: 0 }}>
+                          SL: {detail.quantity}
                         </Tag>
                       </div>
                       {/* Labelled, because the doctor may enter bare values like "3" and "5". */}
-                      <div style={{ color: '#667085', fontSize: 13, marginTop: 4 }}>
-                        Tần suất {detail.frequency} · Dùng trong {detail.duration}
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          color: '#667085',
+                          fontSize: 13,
+                          marginTop: 6,
+                        }}
+                      >
+                        <ClockCircleOutlined style={{ marginTop: 3, flexShrink: 0 }} />
+                        <span>
+                          Tần suất {detail.frequency} · Dùng trong {detail.duration}
+                          {detail.instruction ? ` · ${detail.instruction}` : ''}
+                        </span>
                       </div>
                     </div>
                   ))}
 
-                  <Button block onClick={() => navigate('/prescriptions')}>
-                    Xem tất cả đơn thuốc
+                  <Button
+                    type="link"
+                    icon={<EyeOutlined />}
+                    style={{ paddingInline: 0 }}
+                    onClick={() => navigate('/prescriptions')}
+                  >
+                    Xem chi tiết &amp; hướng dẫn dùng thuốc
                   </Button>
                 </Space>
               ) : (
@@ -294,31 +325,65 @@ export function PatientDashboard() {
               loading={lastVisit.isPending}
             >
               {lastVisit.data ? (
-                <div style={{ borderRadius: 12, background: '#f8fafc', padding: 16 }}>
-                  <Typography.Text strong>{lastVisit.data.doctorSpecialty}</Typography.Text>
-                  <div style={{ color: '#667085', fontSize: 13, marginTop: 4 }}>
-                    BS {lastVisit.data.doctorFullName}
-                  </div>
-                  <div style={{ color: '#667085', fontSize: 13, marginTop: 4 }}>
-                    {formatDate(lastVisit.data.appointmentDate)} ·{' '}
-                    {formatTime(lastVisit.data.startTime)}
-                  </div>
-                </div>
+                <Descriptions
+                  column={1}
+                  size="small"
+                  labelStyle={{ color: '#667085', width: 130 }}
+                  items={[
+                    {
+                      key: 'specialty',
+                      label: 'Chuyên khoa',
+                      children: (
+                        <Typography.Text strong>{lastVisit.data.doctorSpecialty}</Typography.Text>
+                      ),
+                    },
+                    {
+                      key: 'doctor',
+                      label: 'Bác sĩ phụ trách',
+                      children: `BS. ${lastVisit.data.doctorFullName}`,
+                    },
+                    {
+                      key: 'time',
+                      label: 'Thời gian khám',
+                      children: `${formatDate(lastVisit.data.appointmentDate)} · ${formatTime(lastVisit.data.startTime)} – ${formatTime(lastVisit.data.endTime)}`,
+                    },
+                  ]}
+                />
               ) : (
                 <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Bạn chưa khám lần nào" />
               )}
             </Card>
 
-            <Card>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <Typography.Text strong>Cần khám bệnh?</Typography.Text>
-                <Typography.Text type="secondary">
-                  Chọn bác sĩ theo chuyên khoa và giữ chỗ ca khám 30 phút.
+            <Card style={{ background: '#f8fafc' }}>
+              <Space align="start" size={12} style={{ marginBottom: 16 }}>
+                <span
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: '#eff6ff',
+                    color: '#1677ff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <MedicineBoxOutlined />
+                </span>
+                <Typography.Text>
+                  Bạn cần khám bệnh hoặc tái khám định kỳ theo chỉ định của bác sĩ?
                 </Typography.Text>
-                <Button type="primary" block onClick={() => navigate('/doctors')}>
-                  Đặt lịch khám
-                </Button>
               </Space>
+              <Button
+                type="primary"
+                block
+                size="large"
+                icon={<CalendarOutlined />}
+                onClick={() => navigate('/doctors')}
+              >
+                Đặt lịch khám
+              </Button>
             </Card>
           </Space>
         </Col>
