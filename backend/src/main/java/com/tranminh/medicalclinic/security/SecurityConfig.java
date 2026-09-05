@@ -47,6 +47,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/receptionists").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/admin/staff").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/users/*/activate", "/api/v1/admin/users/*/deactivate").hasRole("ADMIN")
+                        // Must stay above the generic GET /api/v1/doctors/** rule below,
+                        // which would otherwise match /api/v1/doctors/me for any role.
+                        .requestMatchers(HttpMethod.GET, "/api/v1/doctors/me").hasRole("DOCTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/doctors/me").hasRole("DOCTOR")
                         .requestMatchers(HttpMethod.POST, "/api/v1/doctors/*/schedules").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/doctors/*/schedules/*").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/doctors/*/schedules/*").hasRole("ADMIN")

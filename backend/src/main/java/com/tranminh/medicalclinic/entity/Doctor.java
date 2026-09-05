@@ -65,6 +65,19 @@ public class Doctor {
         this.bio = bio;
     }
 
+    /**
+     * Fields a Doctor may maintain about themselves.
+     *
+     * Specialty and licence number are deliberately excluded: they are practising
+     * credentials and stay under ADMIN control, so a Doctor cannot change what they
+     * are licensed to practise. Email belongs to the User account, not this profile.
+     */
+    public void updateProfile(String fullName, String phone, String bio) {
+        this.fullName = fullName;
+        this.phone = phone;
+        this.bio = bio;
+    }
+
     public Long getId() {
         return id;
     }
@@ -95,6 +108,10 @@ public class Doctor {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
     @PrePersist
