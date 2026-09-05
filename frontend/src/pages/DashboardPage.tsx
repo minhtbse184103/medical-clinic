@@ -1,4 +1,4 @@
-import { Space, Tag, Typography } from 'antd';
+import { Avatar, Flex, Space, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 
 import { useAuth } from '../auth/useAuth';
@@ -22,6 +22,15 @@ const ROLE_COLOR: Record<Role, string> = {
   PATIENT: 'green',
 };
 
+/** Two letters from the display name, falling back to the first of an email address. */
+function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return (words[words.length - 2][0] + words[words.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
 function greeting(hour: number): string {
   if (hour < 11) return 'Chào buổi sáng';
   if (hour < 14) return 'Chào buổi trưa';
@@ -41,17 +50,28 @@ export function DashboardPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <div>
-        <Space align="center" wrap>
-          <Typography.Title level={4} style={{ margin: 0 }}>
-            {greeting(dayjs().hour())}, {displayName}
+      <Flex align="center" justify="space-between" gap={16} wrap>
+        <div>
+          <Typography.Title level={2} style={{ margin: 0, fontWeight: 700 }}>
+            {greeting(dayjs().hour())}
           </Typography.Title>
-          <Tag color={ROLE_COLOR[user.role]}>{ROLE_LABEL[user.role]}</Tag>
+          <Typography.Text type="secondary">
+            {dayjs().format('dddd, DD/MM/YYYY')}
+          </Typography.Text>
+        </div>
+
+        <Space size={12} align="center">
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: 600 }}>{displayName}</div>
+            <Tag color={ROLE_COLOR[user.role]} style={{ marginInlineEnd: 0 }}>
+              {ROLE_LABEL[user.role]}
+            </Tag>
+          </div>
+          <Avatar size={44} style={{ background: '#0d9488', fontWeight: 600 }}>
+            {initials(displayName)}
+          </Avatar>
         </Space>
-        <Typography.Text type="secondary">
-          Hôm nay là {dayjs().format('dddd, DD/MM/YYYY')}
-        </Typography.Text>
-      </div>
+      </Flex>
 
       {user.role === 'PATIENT' && <PatientDashboard />}
       {user.role === 'DOCTOR' && <DoctorDashboard />}
