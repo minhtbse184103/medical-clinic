@@ -18,11 +18,23 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
+
+    /**
+     * Only the public authentication endpoints skip this filter. Authenticated endpoints under
+     * /api/v1/auth (such as /api/v1/auth/me) still need the token to reach the SecurityContext.
+     */
+    private static final Set<String> PUBLIC_AUTH_PATHS = Set.of(
+            "/api/v1/auth/register",
+            "/api/v1/auth/login",
+            "/api/v1/auth/refresh",
+            "/api/v1/auth/logout"
+    );
 
     private final JwtService jwtService;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
@@ -87,6 +99,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return request.getServletPath().startsWith("/api/v1/auth/");
+        return PUBLIC_AUTH_PATHS.contains(request.getServletPath());
     }
 }

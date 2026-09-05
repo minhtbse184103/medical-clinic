@@ -2,10 +2,12 @@ package com.tranminh.medicalclinic.controller;
 
 import com.tranminh.medicalclinic.dto.request.LoginRequest;
 import com.tranminh.medicalclinic.dto.request.RefreshTokenRequest;
+import com.tranminh.medicalclinic.dto.response.CurrentUserResponse;
 import com.tranminh.medicalclinic.dto.response.LoginResponse;
 import com.tranminh.medicalclinic.dto.request.RegisterPatientRequest;
 import com.tranminh.medicalclinic.dto.response.RegisterPatientResponse;
 import com.tranminh.medicalclinic.enums.Gender;
+import com.tranminh.medicalclinic.enums.Role;
 import com.tranminh.medicalclinic.enums.UserStatus;
 import com.tranminh.medicalclinic.exception.EmailAlreadyExistsException;
 import com.tranminh.medicalclinic.exception.GlobalExceptionHandler;
@@ -15,6 +17,7 @@ import com.tranminh.medicalclinic.security.SecurityConfig;
 import com.tranminh.medicalclinic.security.JwtService;
 import com.tranminh.medicalclinic.security.RestAuthenticationEntryPoint;
 import com.tranminh.medicalclinic.security.RestAccessDeniedHandler;
+import com.tranminh.medicalclinic.service.CurrentUserService;
 import com.tranminh.medicalclinic.service.LoginService;
 import com.tranminh.medicalclinic.service.RegistrationService;
 import com.tranminh.medicalclinic.service.TokenRefreshService;
@@ -23,14 +26,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -59,6 +68,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private RestAccessDeniedHandler accessDeniedHandler;
+
+    @MockitoBean
+    private CurrentUserService currentUserService;
 
     @Test
     void registerPatient_returnsCreatedResponseForPublicEndpoint() throws Exception {
@@ -170,6 +182,41 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{ \"refreshToken\": \"refresh-token\" }"))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void getCurrentUser_returnsIdentityForAuthenticatedPatient() throws Exception {
+        when(currentUserService.getCurrentUser(1L))
+                .thenReturn(new CurrentUserResponse(1L, "patient@example.com", Role.PATIENT, UserStatus.ACTIVE, "Nguyen Van A"));
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .with(authentication(authenticationFor(1L, Role.PATIENT))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(1))
+                .andExpect(jsonPath("$.role").value("PATIENT"))
+                .andExpect(jsonPath("$.fullName").value("Nguyen Van A"));
+
+        verify(currentUserService).getCurrentUser(1L);
+    }
+
+    @Test
+    void getCurrentUser_returnsNullFullNameForReceptionist() throws Exception {
+        when(currentUserService.getCurrentUser(5L))
+                .thenReturn(new CurrentUserResponse(5L, "receptionist@example.com", Role.RECEPTIONIST, UserStatus.ACTIVE, null));
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .with(authentication(authenticationFor(5L, Role.RECEPTIONIST))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("RECEPTIONIST"))
+                .andExpect(jsonPath("$.fullName").doesNotExist());
+    }
+
+    private UsernamePasswordAuthenticationToken authenticationFor(Long userId, Role role) {
+        return new UsernamePasswordAuthenticationToken(
+                userId,
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_" + role.name()))
+        );
     }
 
     private String validRequestJson() {
