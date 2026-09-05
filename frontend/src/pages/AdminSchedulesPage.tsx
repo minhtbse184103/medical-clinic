@@ -1,42 +1,79 @@
 import {
+  ClockCircleOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  InfoCircleOutlined,
+  MoonOutlined,
+  PlusOutlined,
+  SafetyCertificateOutlined,
+  SunOutlined,
+} from '@ant-design/icons';
+import {
   Alert,
   App as AntdApp,
+  Avatar,
+  Breadcrumb,
   Button,
   Card,
+  Col,
   Form,
   Modal,
   Popconfirm,
+  Row,
   Select,
   Space,
   Table,
+  Tag,
   TimePicker,
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { adminApi } from '../api/admin';
 import { doctorsApi } from '../api/doctors';
 import { PageHeader } from '../components/PageHeader';
+import { StatCard } from '../components/StatCard';
 import { errorCode, errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
 import { DAY_OF_WEEK_LABEL } from '../lib/appointmentStatus';
 import { formatTime } from '../lib/datetime';
+import { sessionCapacity, SLOT_MINUTES } from '../lib/slots';
+import { initials } from '../lib/user';
 import type { DayOfWeek, DoctorSchedule } from '../types/api';
 
 const API_TIME_FORMAT = 'HH:mm:ss';
 
-const DAY_OPTIONS = (Object.keys(DAY_OF_WEEK_LABEL) as DayOfWeek[]).map((day) => ({
-  value: day,
-  label: DAY_OF_WEEK_LABEL[day],
-}));
+const PANEL_BG = '#f8fafc';
+
+const WEEK: DayOfWeek[] = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+];
+
+const DAY_OPTIONS = WEEK.map((day) => ({ value: day, label: DAY_OF_WEEK_LABEL[day] }));
 
 interface ScheduleFormValues {
   dayOfWeek: DayOfWeek;
   startTime: Dayjs;
   endTime: Dayjs;
+}
+
+/** Morning or afternoon, decided by the start time; the API has no session name. */
+const isMorning = (schedule: DoctorSchedule) => schedule.startTime < '12:00:00';
+
+/** Length of a shift in hours, for the roster summary. */
+function shiftHours(schedule: DoctorSchedule): number {
+  const start = dayjs(`2000-01-01T${schedule.startTime}`);
+  const end = dayjs(`2000-01-01T${schedule.endTime}`);
+  return end.diff(start, 'minute') / 60;
 }
 
 export function AdminSchedulesPage() {
@@ -57,6 +94,22 @@ export function AdminSchedulesPage() {
     queryFn: () => doctorsApi.schedules(doctorId!),
     enabled: doctorId !== undefined,
   });
+
+  const doctor = doctorsQuery.data?.content.find((row) => row.doctorId === doctorId);
+
+  /** Weekday order, then start time, so the roster reads like a week. */
+  const schedules = useMemo(
+    () =>
+      [...(schedulesQuery.data ?? [])].sort(
+        (a, b) =>
+          WEEK.indexOf(a.dayOfWeek) - WEEK.indexOf(b.dayOfWeek) ||
+          a.startTime.localeCompare(b.startTime),
+      ),
+    [schedulesQuery.data],
+  );
+
+  const totalSlots = schedules.reduce((sum, schedule) => sum + sessionCapacity(schedule), 0);
+  const totalHours = schedules.reduce((sum, schedule) => sum + shiftHours(schedule), 0);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ['doctor-schedules', doctorId] });
@@ -124,23 +177,58 @@ export function AdminSchedulesPage() {
 
   const columns: ColumnsType<DoctorSchedule> = [
     {
-      title: 'Thứ',
+      title: 'THỨ TRONG TUẦN',
       dataIndex: 'dayOfWeek',
       key: 'dayOfWeek',
-      render: (day: DayOfWeek) => DAY_OF_WEEK_LABEL[day],
+      width: 150,
+      render: (day: DayOfWeek) => (
+        <Tag color="blue" style={{ marginInlineEnd: 0 }}>
+          {DAY_OF_WEEK_LABEL[day]}
+        </Tag>
+      ),
     },
     {
-      title: 'Giờ làm việc',
+      title: 'KHUNG GIỜ CA TRỰC',
       key: 'time',
-      render: (_, schedule) => `${formatTime(schedule.startTime)} – ${formatTime(schedule.endTime)}`,
+      width: 200,
+      render: (_, schedule) => (
+        <Space direction="vertical" size={2}>
+          <Typography.Text strong>
+            {formatTime(schedule.startTime)} – {formatTime(schedule.endTime)}
+          </Typography.Text>
+          <Space size={6} style={{ color: '#667085', fontSize: 12.5 }}>
+            {isMorning(schedule) ? (
+              <SunOutlined style={{ color: '#f59e0b' }} />
+            ) : (
+              <MoonOutlined style={{ color: '#6366f1' }} />
+            )}
+            <span>
+              {isMorning(schedule) ? 'Ca sáng' : 'Ca chiều'} ({shiftHours(schedule).toFixed(1)} giờ)
+            </span>
+          </Space>
+        </Space>
+      ),
     },
     {
-      title: '',
-      key: 'actions',
+      title: `SLOT ${SLOT_MINUTES} PHÚT SINH RA`,
+      key: 'slots',
       width: 180,
+      // Derived, not stored: this is what patients will actually be offered.
+      render: (_, schedule) => (
+        <Tag color="green" style={{ marginInlineEnd: 0 }}>
+          {sessionCapacity(schedule)} slot khám
+        </Tag>
+      ),
+    },
+    {
+      title: 'THAO TÁC',
+      key: 'actions',
+      width: 190,
       render: (_, schedule) => (
         <Space>
-          <Button onClick={() => openEdit(schedule)}>Sửa</Button>
+          <Button icon={<EditOutlined />} onClick={() => openEdit(schedule)}>
+            Chỉnh sửa
+          </Button>
           <Popconfirm
             title="Xóa ca làm việc này?"
             description="Không xóa được nếu ca còn lịch hẹn chưa khám."
@@ -148,7 +236,7 @@ export function AdminSchedulesPage() {
             cancelText="Đóng"
             onConfirm={() => deleteMutation.mutate(schedule.scheduleId)}
           >
-            <Button danger>Xóa</Button>
+            <Button danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
       ),
@@ -156,52 +244,161 @@ export function AdminSchedulesPage() {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space direction="vertical" size={20} style={{ width: '100%' }}>
+      <Breadcrumb
+        items={[{ title: 'Quản trị hệ thống' }, { title: 'Quản lý lịch làm việc bác sĩ' }]}
+      />
+
       <PageHeader
-        title="Lịch làm việc của bác sĩ"
-        description="Lịch lặp lại hàng tuần. Các ca khám 30 phút mà bệnh nhân đặt được sinh ra từ đây."
+        title="Quản lý lịch làm việc hàng tuần của bác sĩ"
+        description="Phân bổ ca trực định kỳ và kiểm soát số lượng ca khám 30 phút sinh ra từ mỗi ca."
+      />
+
+      {/* Why this screen matters: these rows are what generates every bookable slot. */}
+      <Alert
+        type="info"
+        showIcon
+        icon={<InfoCircleOutlined />}
+        message="Cơ chế lặp lại ca trực hàng tuần"
+        description={`Lịch trực được thiết lập một lần và lặp lại mỗi tuần. Hệ thống tự sinh các khung giờ khám ${SLOT_MINUTES} phút tương ứng cho từng ca để bệnh nhân và lễ tân đặt lịch.`}
       />
 
       <Card>
-        <Select
-          showSearch
-          optionFilterProp="label"
-          placeholder="Chọn bác sĩ"
-          style={{ minWidth: 320 }}
-          loading={doctorsQuery.isFetching}
-          value={doctorId}
-          options={(doctorsQuery.data?.content ?? []).map((doctor) => ({
-            value: doctor.doctorId,
-            label: `${doctor.fullName} — ${doctor.specialty}`,
-          }))}
-          onChange={setDoctorId}
-        />
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} md={14}>
+            <Typography.Text type="secondary" style={{ fontSize: 12.5 }}>
+              Chọn bác sĩ để quản lý lịch trực
+            </Typography.Text>
+            <Select
+              showSearch
+              optionFilterProp="label"
+              placeholder="Chọn bác sĩ"
+              style={{ width: '100%', marginTop: 4 }}
+              loading={doctorsQuery.isFetching}
+              value={doctorId}
+              options={(doctorsQuery.data?.content ?? []).map((row) => ({
+                value: row.doctorId,
+                label: `${row.fullName} — ${row.specialty}`,
+              }))}
+              onChange={setDoctorId}
+            />
+          </Col>
+          {doctor && (
+            <Col xs={24} md={10}>
+              <Card size="small" style={{ background: PANEL_BG }}>
+                <Space size={10}>
+                  <Avatar style={{ background: '#1677ff' }}>{initials(doctor.fullName)}</Avatar>
+                  <div>
+                    <Typography.Text strong>BS. {doctor.fullName}</Typography.Text>
+                    <div>
+                      <Tag color="blue" style={{ marginInlineEnd: 0 }}>
+                        {doctor.specialty}
+                      </Tag>
+                    </div>
+                  </div>
+                </Space>
+              </Card>
+            </Col>
+          )}
+        </Row>
       </Card>
 
       {doctorId === undefined ? (
-        <Typography.Text type="secondary">Chọn một bác sĩ để xem lịch làm việc.</Typography.Text>
+        <Card>
+          <Typography.Text type="secondary">
+            Chọn một bác sĩ để xem và sửa lịch làm việc.
+          </Typography.Text>
+        </Card>
       ) : (
         <>
           {schedulesQuery.isError && (
             <Alert type="error" showIcon message={errorMessage(schedulesQuery.error)} />
           )}
 
-          <Button type="primary" onClick={openCreate}>
-            Thêm ca làm việc
-          </Button>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={8}>
+              <StatCard
+                title="Ca trực trong tuần"
+                value={schedules.length}
+                loading={schedulesQuery.isFetching}
+                icon={<ClockCircleOutlined />}
+                footer="Lặp lại mỗi 7 ngày"
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard
+                title={`Slot ${SLOT_MINUTES} phút sinh ra`}
+                value={totalSlots}
+                loading={schedulesQuery.isFetching}
+                icon={<SunOutlined />}
+                footer="Số ca bệnh nhân đặt được mỗi tuần"
+              />
+            </Col>
+            <Col xs={24} sm={8}>
+              <StatCard
+                title="Tổng thời lượng khám"
+                value={`${totalHours.toFixed(1)} giờ`}
+                loading={schedulesQuery.isFetching}
+                icon={<MoonOutlined />}
+                footer="Cộng dồn các ca trong tuần"
+              />
+            </Col>
+          </Row>
 
-          <Table<DoctorSchedule>
-            rowKey="scheduleId"
-            columns={columns}
-            dataSource={schedulesQuery.isError ? [] : schedulesQuery.data}
-            loading={schedulesQuery.isFetching}
-            pagination={false}
-            locale={{
-              emptyText: schedulesQuery.isError
-                ? 'Không tải được lịch làm việc'
-                : 'Bác sĩ chưa có ca làm việc nào',
-            }}
-          />
+          <Card
+            title={
+              <Space size={10} wrap>
+                <span style={{ fontSize: 16, fontWeight: 600 }}>Lịch phân ca cố định</span>
+                <Tag color="blue" style={{ marginInlineEnd: 0 }}>
+                  Tuần hoàn mỗi 7 ngày
+                </Tag>
+              </Space>
+            }
+            extra={
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                Thêm ca làm việc
+              </Button>
+            }
+          >
+            <Table<DoctorSchedule>
+              rowKey="scheduleId"
+              columns={columns}
+              dataSource={schedulesQuery.isError ? [] : schedules}
+              loading={schedulesQuery.isFetching}
+              pagination={false}
+              scroll={{ x: 760 }}
+              locale={{
+                emptyText: schedulesQuery.isError
+                  ? 'Không tải được lịch làm việc'
+                  : 'Bác sĩ chưa có ca làm việc nào',
+              }}
+            />
+
+            {schedules.length > 0 && (
+              <Typography.Text type="secondary" style={{ display: 'block', marginTop: 12 }}>
+                Tổng cộng: <b>{schedules.length}</b> ca làm việc lặp lại trong tuần · Tổng thời
+                lượng khám: <b>{totalHours.toFixed(1)} giờ</b> · <b>{totalSlots}</b> slot khám
+              </Typography.Text>
+            )}
+          </Card>
+
+          {/* The rule behind DOCTOR_SCHEDULE_HAS_ACTIVE_APPOINTMENTS. */}
+          <Card>
+            <Space size={10} align="start">
+              <SafetyCertificateOutlined style={{ color: '#1677ff', marginTop: 3 }} />
+              <div>
+                <Typography.Text strong>Chính sách khóa ca bảo vệ bệnh nhân</Typography.Text>
+                <Typography.Paragraph
+                  type="secondary"
+                  style={{ marginBottom: 0, marginTop: 6, fontSize: 13 }}
+                >
+                  Ca làm việc còn lịch hẹn chưa khám sẽ không xóa được, để bệnh nhân không bị mất
+                  lịch đột ngột. Muốn xóa thì lễ tân phải hủy hoặc dời các lịch hẹn đó trước. Sửa
+                  giờ ca cũng không được nếu khung giờ mới trùng với ca khác của cùng bác sĩ.
+                </Typography.Paragraph>
+              </div>
+            </Space>
+          </Card>
         </>
       )}
 
@@ -235,6 +432,7 @@ export function AdminSchedulesPage() {
             name="endTime"
             label="Giờ kết thúc"
             dependencies={['startTime']}
+            extra={`Khoảng thời gian lẻ dưới ${SLOT_MINUTES} phút ở cuối ca sẽ không sinh ra slot nào.`}
             rules={[
               { required: true, message: 'Vui lòng chọn giờ kết thúc.' },
               // The backend enforces this too; checking here avoids a pointless round trip.
