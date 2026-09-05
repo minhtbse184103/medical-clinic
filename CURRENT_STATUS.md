@@ -346,6 +346,6 @@ All four MVP roles now have a user interface, and the end-to-end demo flow of `d
 Reasonable next steps, in no particular order:
 
 - Frontend tests: 39 Vitest tests cover the token refresh interceptor, the pagination and error helpers, and role gating. The single-flight test was verified to fail when the guard is removed, so it is not vacuous. The screens themselves are uncovered.
-- Code splitting. The production bundle is a single 1.4 MB chunk, which Vite warns about on every build.
+- Code splitting: every page is lazily loaded, so a signed-in user downloads only the screens their role can reach. The entry chunk went from 1.47 MB to 432 kB and Vite's chunk size warning is gone.
 - Screenshots in the README, so the interface is visible without cloning and running the project.
 - The deferred backend items from `docs/07-rest-api-design.md` section 27, if the project scope is ever widened.

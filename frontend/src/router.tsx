@@ -2,32 +2,40 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { AppLayout } from './layouts/AppLayout';
-import { AdminSchedulesPage } from './pages/AdminSchedulesPage';
-import { AdminStaffPage } from './pages/AdminStaffPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { DoctorAppointmentsPage } from './pages/DoctorAppointmentsPage';
-import { DoctorDetailPage } from './pages/DoctorDetailPage';
-import { DoctorExaminationPage } from './pages/DoctorExaminationPage';
-import { DoctorListPage } from './pages/DoctorListPage';
-import { DoctorPatientHistoryPage } from './pages/DoctorPatientHistoryPage';
-import { DoctorProfilePage } from './pages/DoctorProfilePage';
-import { LoginPage } from './pages/LoginPage';
-import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
-import { NotFoundPage } from './pages/NotFoundPage';
-import { PatientMedicalRecordsPage } from './pages/PatientMedicalRecordsPage';
-import { PatientPrescriptionsPage } from './pages/PatientPrescriptionsPage';
-import { PatientProfilePage } from './pages/PatientProfilePage';
-import { ReceptionistAppointmentsPage } from './pages/ReceptionistAppointmentsPage';
-import { ReceptionistBookingPage } from './pages/ReceptionistBookingPage';
-import { RegisterPage } from './pages/RegisterPage';
+import { SuspendedPage } from './components/SuspendedPage';
+import {
+  AdminSchedulesPage,
+  AdminStaffPage,
+  DashboardPage,
+  DoctorAppointmentsPage,
+  DoctorDetailPage,
+  DoctorExaminationPage,
+  DoctorListPage,
+  DoctorPatientHistoryPage,
+  DoctorProfilePage,
+  LoginPage,
+  MyAppointmentsPage,
+  NotFoundPage,
+  PatientMedicalRecordsPage,
+  PatientPrescriptionsPage,
+  PatientProfilePage,
+  ReceptionistAppointmentsPage,
+  ReceptionistBookingPage,
+  RegisterPage,
+} from './pages/lazyPages';
 
+/*
+ * Every page is lazily loaded. AppLayout and ProtectedRoute stay eager: they render on
+ * every route, so deferring them would only add a round trip before anything appears.
+ */
 export const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
-  { path: '/register', element: <RegisterPage /> },
+  { path: '/login', element: <SuspendedPage element={<LoginPage />} /> },
+  { path: '/register', element: <SuspendedPage element={<RegisterPage />} /> },
   {
     element: <ProtectedRoute />,
     children: [
       {
+        // AppLayout wraps its Outlet in Suspense, so nested pages need no wrapper here.
         element: <AppLayout />,
         children: [
           { path: '/', element: <DashboardPage /> },
@@ -75,5 +83,5 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  { path: '*', element: <NotFoundPage /> },
+  { path: '*', element: <SuspendedPage element={<NotFoundPage />} /> },
 ]);

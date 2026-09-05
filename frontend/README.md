@@ -56,6 +56,13 @@ src/
 └── main.tsx      ConfigProvider, App, QueryClient, AuthProvider, Router
 ```
 
+Every page is lazily loaded through `src/pages/lazyPages.ts`, so a signed-in user downloads only
+the screens their role can reach. `AppLayout` and `ProtectedRoute` stay eager, since they render on
+every route. The layout wraps its `Outlet` in `Suspense`, so it stays on screen while a page chunk
+arrives; routes outside the layout use `SuspendedPage`.
+
+This takes the entry chunk from 1.47 MB to 432 kB and clears Vite's chunk size warning.
+
 ## How the pieces fit
 
 **Authentication.** `POST /auth/login` returns tokens only, no role, so `AuthContext` follows it

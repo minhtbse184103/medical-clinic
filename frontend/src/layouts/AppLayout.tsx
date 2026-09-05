@@ -9,9 +9,11 @@ import {
 } from '@ant-design/icons';
 import { App as AntdApp, Avatar, Dropdown, Layout, Menu, Typography } from 'antd';
 import type { MenuProps } from 'antd';
+import { Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../auth/useAuth';
+import { PageLoading } from '../components/SuspendedPage';
 import type { Role } from '../types/api';
 
 const { Header, Sider, Content } = Layout;
@@ -120,7 +122,10 @@ export function AppLayout() {
         </Header>
 
         <Content style={{ margin: 24 }}>
-          <Outlet />
+          {/* Pages are lazily loaded, so the layout stays on screen while a chunk arrives. */}
+          <Suspense fallback={<PageLoading />}>
+            <Outlet />
+          </Suspense>
         </Content>
       </Layout>
     </Layout>
