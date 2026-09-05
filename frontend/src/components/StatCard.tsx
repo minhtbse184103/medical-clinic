@@ -8,10 +8,20 @@ interface StatCardProps {
   loading?: boolean;
   /** Draws attention to a number that means someone has to act. */
   highlight?: boolean;
+  /** A short line under the number, for what the number means in context. */
+  footer?: ReactNode;
   onClick?: () => void;
 }
 
-export function StatCard({ title, value, icon, loading, highlight, onClick }: StatCardProps) {
+export function StatCard({
+  title,
+  value,
+  icon,
+  loading,
+  highlight,
+  footer,
+  onClick,
+}: StatCardProps) {
   return (
     <Card
       size="small"
@@ -27,6 +37,7 @@ export function StatCard({ title, value, icon, loading, highlight, onClick }: St
         prefix={icon}
         valueStyle={highlight ? { color: '#d48806' } : undefined}
       />
+      {footer && <div style={{ marginTop: 8, fontSize: 12.5, color: '#667085' }}>{footer}</div>}
     </Card>
   );
 }
