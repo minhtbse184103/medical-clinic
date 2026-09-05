@@ -18,30 +18,31 @@ export function PulseIcon({ size = 24 }: { size?: number }) {
 }
 
 /** Logo lockup: the mark in a rounded blue tile, followed by the product name. */
-export function BrandMark({ size = 'default' }: { size?: 'default' | 'large' }) {
-  const tile = size === 'large' ? 56 : 44;
-  const text = size === 'large' ? 26 : 22;
-
+export function BrandMark({ subtitle }: { subtitle?: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
       <div
         style={{
-          width: tile,
-          height: tile,
-          borderRadius: tile / 3.5,
+          width: 48,
+          height: 48,
+          borderRadius: 14,
           background: '#1677ff',
           color: '#fff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
+          boxShadow: '0 6px 16px rgba(22, 119, 255, 0.28)',
         }}
       >
-        <PulseIcon size={tile * 0.55} />
+        <PulseIcon size={26} />
       </div>
-      <span style={{ fontSize: text, fontWeight: 700, letterSpacing: -0.4, color: '#101828' }}>
-        Medical Clinic
-      </span>
+      <div style={{ lineHeight: 1.25 }}>
+        <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: -0.3, color: '#101828' }}>
+          Medical Clinic
+        </div>
+        {subtitle && <div style={{ fontSize: 13, color: '#667085' }}>{subtitle}</div>}
+      </div>
     </div>
   );
 }

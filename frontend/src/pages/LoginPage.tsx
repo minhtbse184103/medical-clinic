@@ -1,4 +1,4 @@
-import { LockOutlined, MailOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
 import { Alert, App as AntdApp, Button, Form, Input, Typography } from 'antd';
 import { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
@@ -44,11 +44,11 @@ export function LoginPage() {
 
   return (
     <AuthLayout>
-      <Typography.Title level={2} style={{ marginBottom: 6, fontWeight: 700 }}>
-        Chào mừng trở lại
+      <Typography.Title level={2} style={{ marginBottom: 8, fontWeight: 700 }}>
+        Chào mừng quay trở lại
       </Typography.Title>
       <Typography.Paragraph type="secondary" style={{ fontSize: 15, marginBottom: 28 }}>
-        Đăng nhập để tiếp tục vào Medical Clinic
+        Đăng nhập vào tài khoản để quản lý lịch khám và dữ liệu bệnh án.
       </Typography.Paragraph>
 
       {generalError && (
@@ -67,9 +67,10 @@ export function LoginPage() {
           <Input
             size="large"
             variant="filled"
-            prefix={<MailOutlined style={{ color: '#98a2b3' }} />}
-            placeholder="Nhập email của bạn"
+            prefix={<MailOutlined style={{ color: '#98a2b3', marginRight: 6 }} />}
+            placeholder="ten@clinic.local"
             autoComplete="email"
+            style={{ height: 48 }}
           />
         </Form.Item>
 
@@ -81,11 +82,30 @@ export function LoginPage() {
           <Input.Password
             size="large"
             variant="filled"
-            prefix={<LockOutlined style={{ color: '#98a2b3' }} />}
+            prefix={<LockOutlined style={{ color: '#98a2b3', marginRight: 6 }} />}
             placeholder="Nhập mật khẩu"
             autoComplete="current-password"
+            style={{ height: 48 }}
           />
         </Form.Item>
+
+        {/* True of the system: one sign-in serves all four roles, routed by the JWT role. */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '6px 12px',
+            borderRadius: 8,
+            background: '#eff6ff',
+            color: '#1d4ed8',
+            fontSize: 13,
+            marginBottom: 20,
+          }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1d4ed8' }} />
+          Hỗ trợ: Bệnh nhân, Bác sĩ, Lễ tân, Quản trị
+        </div>
 
         <Button
           type="primary"
@@ -93,7 +113,9 @@ export function LoginPage() {
           size="large"
           block
           loading={submitting}
-          style={{ height: 48, fontWeight: 600, marginTop: 4 }}
+          icon={<ArrowRightOutlined />}
+          iconPosition="end"
+          style={{ height: 52, fontWeight: 600, borderRadius: 10 }}
         >
           Đăng nhập
         </Button>
@@ -103,19 +125,23 @@ export function LoginPage() {
         Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
       </Typography.Paragraph>
 
-      <Alert
-        type="info"
-        style={{ marginTop: 24 }}
-        message="Tài khoản demo"
-        description={
-          <Typography.Text style={{ fontSize: 13 }}>
-            <code>admin@clinic.local</code> · <code>doctor1@clinic.local</code> ·{' '}
-            <code>receptionist@clinic.local</code> · <code>patient@clinic.local</code>
-            <br />
-            Mật khẩu chung: <code>Demo@12345</code>
-          </Typography.Text>
-        }
-      />
+      <div
+        style={{
+          marginTop: 20,
+          padding: 14,
+          borderRadius: 10,
+          border: '1px dashed #d0d5dd',
+          fontSize: 12.5,
+          color: '#667085',
+          lineHeight: 1.7,
+        }}
+      >
+        <b style={{ color: '#344054' }}>Tài khoản demo</b> — mật khẩu chung{' '}
+        <code>Demo@12345</code>
+        <br />
+        <code>patient@clinic.local</code> · <code>doctor1@clinic.local</code> ·{' '}
+        <code>receptionist@clinic.local</code> · <code>admin@clinic.local</code>
+      </div>
     </AuthLayout>
   );
 }
