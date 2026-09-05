@@ -26,7 +26,9 @@ Bean Validation handles request/structural validation; the Service layer handles
 
 Do not expose or commit secrets. The database password is supplied through the DB_PASSWORD environment variable.
 
-Do not introduce Redis, Docker, React, i18n, distributed locks, or other later-stage features until the core MVP warrants them.
+Do not introduce Redis, Docker, i18n, distributed locks, or other later-stage features until the core MVP warrants them.
+
+The core MVP backend is complete, so the frontend phase has started. React lives in `frontend/` and is no longer deferred; see `frontend/README.md` and the Frontend section of CURRENT_STATUS.md.
 
 Do not refactor unrelated working code while implementing a focused task unless there is a clear reason and the developer is informed first.
 
@@ -76,7 +78,7 @@ Do not reintroduce com.tranminh.medical_clinic.
 
 Project Structure
 
-This repository is a monorepo. The Spring Boot project lives in `backend/`; `frontend/` is reserved for a later frontend application, while shared design documents remain in the root `docs/` directory. Do not create empty packages merely to match the diagram; create them when they are actually needed.
+This repository is a monorepo. The Spring Boot project lives in `backend/`; the React application lives in `frontend/`, while shared design documents remain in the root `docs/` directory. Do not create empty packages merely to match the diagram; create them when they are actually needed.
 
 backend/src/main/java/com/tranminh/medicalclinic/
 ├── config/

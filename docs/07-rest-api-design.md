@@ -364,6 +364,40 @@ Access token vẫn stateless, do đó có thể còn sử dụng cho đến khi 
 
 ---
 
+## Current User
+
+```text
+GET /api/v1/auth/me
+```
+
+Actor:
+
+```text
+Mọi role đã đăng nhập (ADMIN, DOCTOR, RECEPTIONIST, PATIENT)
+```
+
+Response: `200 OK` — `CurrentUserResponse`
+
+```json
+{
+  "userId": 10,
+  "email": "patient@clinic.local",
+  "role": "PATIENT",
+  "status": "ACTIVE",
+  "fullName": "Le Van Cuong"
+}
+```
+
+Lý do endpoint này tồn tại: `LoginResponse` chỉ chứa token, không chứa role. Frontend cần biết danh tính để điều hướng theo role và để khôi phục session sau khi người dùng refresh trang, thay vì tự decode JWT ở phía client.
+
+`userId` được lấy từ JWT security context, không nhận từ client.
+
+`fullName` là `null` với `ADMIN` và `RECEPTIONIST` vì hai role này không có bảng profile trong MVP; frontend hiển thị `email` thay thế.
+
+User không còn tồn tại trả `404 USER_NOT_FOUND`. Thiếu hoặc sai access token trả `401 UNAUTHORIZED`.
+
+---
+
 ## JWT policy
 
 - Login trả `LoginResponse` gồm access token và refresh token.
@@ -693,6 +727,57 @@ Response: `200 OK` — `DoctorResponse`
 ```
 
 Nếu Doctor không tồn tại hoặc không còn `ACTIVE`, trả về `404 DOCTOR_NOT_FOUND`.
+
+---
+
+## Doctor xem và sửa hồ sơ của chính mình
+
+```text
+GET /api/v1/doctors/me
+PUT /api/v1/doctors/me
+```
+
+Actor:
+
+```text
+DOCTOR
+```
+
+Response: `200 OK` — `DoctorProfileResponse`
+
+```json
+{
+  "doctorId": 1,
+  "userId": 3,
+  "email": "doctor1@clinic.local",
+  "fullName": "Nguyen Van An",
+  "phone": "0900000001",
+  "specialty": "Nội tổng quát",
+  "licenseNumber": "LIC-DEMO-0001",
+  "bio": "Bác sĩ nội tổng quát",
+  "status": "ACTIVE",
+  "createdAt": "...",
+  "updatedAt": "..."
+}
+```
+
+Khác với `DoctorResponse` (view danh bạ mà các role khác nhìn thấy), response này có `email` và `licenseNumber`, vì đó là dữ liệu của chính người đang đọc.
+
+Request của `PUT`: `UpdateDoctorProfileRequest`
+
+```json
+{
+  "fullName": "Nguyen Van An",
+  "phone": "0911111111",
+  "bio": "Bác sĩ nội tổng quát, 10 năm kinh nghiệm"
+}
+```
+
+Chỉ ba trường trên được sửa. `specialty` và `licenseNumber` **không nằm trong request** vì đó là thông tin chứng chỉ hành nghề, phải do `ADMIN` kiểm soát — bác sĩ tự sửa được chuyên khoa mình hành nghề là lỗ hổng nghiệp vụ. `email` thuộc về `User`, không sửa ở đây.
+
+`doctorId` được suy ra từ JWT, không nhận từ client. User không có hồ sơ Doctor trả `404 DOCTOR_PROFILE_NOT_FOUND`.
+
+Lưu ý thứ tự rule trong `SecurityConfig`: hai matcher này phải đặt **trước** `GET /api/v1/doctors/**`, nếu không `/doctors/me` sẽ rơi vào rule chung và mọi role đã đăng nhập đều gọi được.
 
 ---
 
@@ -1192,6 +1277,59 @@ Response: `200 OK` — `ReceptionistAppointmentPageResponse`
 ```
 
 Results are ordered by `appointmentDate` and `startTime`, ascending. The response excludes Patient contact/profile fields and all internal User fields.
+
+---
+
+## Receptionist tìm Patient
+
+```text
+GET /api/v1/receptionist/patients
+```
+
+Actor:
+
+```text
+RECEPTIONIST
+```
+
+Query params:
+
+```text
+?name=cuong
+&phone=0900
+&page=0
+&size=20
+```
+
+`name` và `phone` đều optional, lọc theo kiểu *chứa*; `name` không phân biệt hoa thường.
+
+Response: `200 OK` — `ReceptionistPatientPageResponse`
+
+```json
+{
+  "content": [
+    {
+      "patientId": 7,
+      "fullName": "Le Van Cuong",
+      "phone": "0900000003",
+      "dateOfBirth": "1995-05-20",
+      "gender": "MALE"
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+Lý do endpoint này tồn tại: `POST /api/v1/receptionist/appointments` cần `patientId`, nhưng trước đó không có API nào cho Receptionist tra cứu Patient, nên endpoint đặt lịch hộ không thể gọi được từ giao diện.
+
+Chỉ trả Patient có User `ACTIVE`, vì đặt lịch từ chối tài khoản inactive; trả về Patient inactive sẽ khiến Receptionist chọn được người mà hệ thống sau đó từ chối.
+
+Response chỉ gồm dữ liệu đủ để nhận diện đúng người (tên, điện thoại, ngày sinh, giới tính). Email và các trường User nội bộ không được expose.
+
+Endpoint này chỉ **tìm** Patient đã có tài khoản. Tạo hồ sơ cho bệnh nhân vãng lai chưa đăng ký nằm ngoài phạm vi hiện tại: `patients.user_id` là `NOT NULL`, nên mọi Patient đều phải gắn với một User.
 
 ---
 
@@ -1835,6 +1973,18 @@ PRESCRIPTION_NOT_FOUND
 PRESCRIPTION_ALREADY_EXISTS
 ```
 
+Ngoài error code nghiệp vụ, các lỗi kỹ thuật cũng trả về đúng shape `ApiErrorResponse` để frontend chỉ cần một hàm parse lỗi duy nhất:
+
+```text
+INVALID_PARAMETER          400  query/path param sai kiểu
+MISSING_PARAMETER          400  thiếu query param bắt buộc
+MALFORMED_REQUEST_BODY     400  JSON body không đọc được
+UNAUTHORIZED               401  thiếu hoặc sai access token
+METHOD_NOT_ALLOWED         405  sai HTTP method
+ENDPOINT_NOT_FOUND         404  endpoint không tồn tại
+INTERNAL_ERROR             500  lỗi không mong muốn; chi tiết chỉ ghi vào log
+```
+
 ---
 
 # 23. Pagination convention
@@ -1918,6 +2068,7 @@ POST   /api/v1/auth/register
 POST   /api/v1/auth/login
 POST   /api/v1/auth/refresh
 POST   /api/v1/auth/logout
+GET    /api/v1/auth/me
 
 POST   /api/v1/admin/doctors
 POST   /api/v1/admin/receptionists
@@ -1930,6 +2081,8 @@ PUT    /api/v1/patients/me
 
 GET    /api/v1/doctors
 GET    /api/v1/doctors/{id}
+GET    /api/v1/doctors/me
+PUT    /api/v1/doctors/me
 
 POST   /api/v1/doctors/{doctorId}/schedules
 PUT    /api/v1/doctors/{doctorId}/schedules/{scheduleId}
@@ -1942,6 +2095,7 @@ GET    /api/v1/appointments/me
 
 POST   /api/v1/receptionist/appointments
 GET    /api/v1/receptionist/appointments
+GET    /api/v1/receptionist/patients
 
 GET    /api/v1/doctor/appointments
 
