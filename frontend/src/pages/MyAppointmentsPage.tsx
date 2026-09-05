@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   DatePicker,
+  Empty,
   Flex,
   Input,
   Modal,
@@ -17,8 +18,10 @@ import type { ColumnsType } from 'antd/es/table';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Dayjs } from 'dayjs';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { appointmentsApi } from '../api/appointments';
+import { PageHeader } from '../components/PageHeader';
 import { errorMessage } from '../lib/apiError';
 import {
   APPOINTMENT_STATUS_COLOR,
@@ -61,6 +64,7 @@ export function MyAppointmentsPage() {
   const [cancelTarget, setCancelTarget] = useState<PatientAppointment | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { message } = AntdApp.useApp();
 
   const query: PatientAppointmentQuery = { ...pageQuery, ...filters };
@@ -141,9 +145,15 @@ export function MyAppointmentsPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        Lịch hẹn của tôi
-      </Typography.Title>
+      <PageHeader
+        title="Lịch hẹn của tôi"
+        description="Chỉ hủy được trước giờ khám ít nhất 2 tiếng. Muộn hơn, vui lòng liên hệ lễ tân."
+        extra={
+          <Button type="primary" onClick={() => navigate('/doctors')}>
+            Đặt lịch khám
+          </Button>
+        }
+      />
 
       {error && <Alert type="error" showIcon message={errorMessage(error)} />}
 
@@ -183,6 +193,15 @@ export function MyAppointmentsPage() {
         loading={isFetching}
         pagination={toTablePagination(data, pageQuery)}
         onChange={(pagination) => setPageQuery(fromTablePagination(pagination, pageQuery))}
+        locale={{
+          emptyText: (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có lịch hẹn nào">
+              <Button type="primary" onClick={() => navigate('/doctors')}>
+                Đặt lịch khám
+              </Button>
+            </Empty>
+          ),
+        }}
       />
 
       <Modal

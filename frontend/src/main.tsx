@@ -29,7 +29,25 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ConfigProvider locale={viVN} theme={{ token: { colorPrimary: '#1677ff', borderRadius: 6 } }}>
+    <ConfigProvider
+      locale={viVN}
+      theme={{
+        token: {
+          colorPrimary: '#1677ff',
+          borderRadius: 8,
+          // A tinted page background so white cards read as raised surfaces.
+          colorBgLayout: '#f4f6f9',
+          // System fonts only: no webfont request, and these all cover Vietnamese diacritics.
+          fontFamily:
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+        },
+        components: {
+          Layout: { headerBg: '#ffffff', headerHeight: 56 },
+          Card: { headerFontSize: 15 },
+          Menu: { itemMarginInline: 8, itemBorderRadius: 6 },
+        },
+      }}
+    >
       {/* AntdApp provides message/notification/modal through hooks so they inherit theme and locale. */}
       <AntdApp>
         <QueryClientProvider client={queryClient}>

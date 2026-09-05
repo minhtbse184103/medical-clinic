@@ -20,6 +20,7 @@ import { useEffect } from 'react';
 import { doctorApi } from '../api/doctor';
 import { doctorsApi } from '../api/doctors';
 import { useAuth } from '../auth/useAuth';
+import { PageHeader } from '../components/PageHeader';
 import { errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
 import { DAY_OF_WEEK_LABEL } from '../lib/appointmentStatus';
@@ -97,9 +98,10 @@ export function DoctorProfilePage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        Hồ sơ của tôi
-      </Typography.Title>
+      <PageHeader
+        title="Hồ sơ của tôi"
+        description="Chuyên khoa, số giấy phép và lịch làm việc do quản trị viên quản lý."
+      />
 
       <Card title="Thông tin do quản trị viên quản lý">
         <Descriptions column={1} size="small" bordered>

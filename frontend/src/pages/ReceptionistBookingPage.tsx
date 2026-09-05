@@ -23,6 +23,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { doctorsApi } from '../api/doctors';
 import { receptionistApi } from '../api/receptionist';
+import { PageHeader } from '../components/PageHeader';
 import { errorCode, errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
 import { dayOfWeekFromIndex } from '../lib/appointmentStatus';
@@ -161,11 +162,12 @@ export function ReceptionistBookingPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Button onClick={() => navigate('/receptionist/appointments')}>← Quản lý lịch hẹn</Button>
-
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        Đặt lịch hộ bệnh nhân
-      </Typography.Title>
+      <PageHeader
+        title="Đặt lịch hộ bệnh nhân"
+        description="Chọn bệnh nhân đã có tài khoản, rồi chọn bác sĩ và ca khám."
+        onBack={() => navigate('/receptionist/appointments')}
+        backLabel="Quản lý lịch hẹn"
+      />
 
       <Card title="1. Chọn bệnh nhân">
         {patient ? (

@@ -1,9 +1,10 @@
-import { Alert, App as AntdApp, Button, Card, DatePicker, Flex, Form, Input, Select, Typography } from 'antd';
+import { Alert, App as AntdApp, Button, Card, DatePicker, Form, Input, Select, Typography } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { authApi } from '../api/auth';
+import { AuthLayout } from '../layouts/AuthLayout';
 import { errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
 import { toApiDate } from '../lib/datetime';
@@ -49,11 +50,14 @@ export function RegisterPage() {
   };
 
   return (
-    <Flex align="center" justify="center" style={{ minHeight: '100vh', background: '#f0f2f5', padding: 24 }}>
-      <Card style={{ width: 480 }}>
-        <Typography.Title level={3} style={{ textAlign: 'center' }}>
+    <AuthLayout>
+      <Card>
+        <Typography.Title level={3} style={{ marginBottom: 4 }}>
           Đăng ký bệnh nhân
         </Typography.Title>
+        <Typography.Paragraph type="secondary">
+          Tạo tài khoản để đặt lịch khám và theo dõi bệnh án.
+        </Typography.Paragraph>
 
         {generalError && (
           <Alert type="error" message={generalError} showIcon style={{ marginBottom: 16 }} />
@@ -115,6 +119,6 @@ export function RegisterPage() {
           Đã có tài khoản? <Link to="/login">Đăng nhập</Link>
         </Typography.Paragraph>
       </Card>
-    </Flex>
+    </AuthLayout>
   );
 }

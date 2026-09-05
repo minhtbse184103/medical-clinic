@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { doctorApi } from '../api/doctor';
+import { PageHeader } from '../components/PageHeader';
 import { errorMessage } from '../lib/apiError';
 import {
   APPOINTMENT_STATUS_COLOR,
@@ -101,9 +102,10 @@ export function DoctorAppointmentsPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        Lịch khám của tôi
-      </Typography.Title>
+      <PageHeader
+        title="Lịch khám của tôi"
+        description="Nút Khám chỉ hiện với lịch đã được lễ tân xác nhận và đã tới giờ."
+      />
 
       {error && <Alert type="error" showIcon message={errorMessage(error)} />}
 

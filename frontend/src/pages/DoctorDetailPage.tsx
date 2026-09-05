@@ -23,6 +23,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { appointmentsApi } from '../api/appointments';
 import { doctorsApi } from '../api/doctors';
 import { useAuth } from '../auth/useAuth';
+import { PageHeader } from '../components/PageHeader';
 import { errorCode, errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
 import { DAY_OF_WEEK_LABEL, dayOfWeekFromIndex } from '../lib/appointmentStatus';
@@ -121,9 +122,14 @@ export function DoctorDetailPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Button onClick={() => navigate('/doctors')}>← Danh sách bác sĩ</Button>
+      <PageHeader
+        title={doctor.fullName}
+        description={doctor.specialty}
+        onBack={() => navigate('/doctors')}
+        backLabel="Danh sách bác sĩ"
+      />
 
-      <Card title={doctor.fullName}>
+      <Card title="Thông tin bác sĩ">
         <Descriptions column={1} size="small">
           <Descriptions.Item label="Chuyên khoa">{doctor.specialty}</Descriptions.Item>
           <Descriptions.Item label="Điện thoại">{doctor.phone ?? '—'}</Descriptions.Item>

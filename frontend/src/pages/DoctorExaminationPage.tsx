@@ -23,6 +23,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { doctorApi } from '../api/doctor';
+import { PageHeader } from '../components/PageHeader';
 import { errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
 import { APPOINTMENT_STATUS_COLOR, APPOINTMENT_STATUS_LABEL } from '../lib/appointmentStatus';
@@ -161,7 +162,12 @@ export function DoctorExaminationPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Button onClick={() => navigate('/doctor/appointments')}>← Lịch khám</Button>
+      <PageHeader
+        title="Khám bệnh"
+        description="Ghi bệnh án sẽ hoàn tất lịch khám, sau đó mới kê được đơn thuốc."
+        onBack={() => navigate('/doctor/appointments')}
+        backLabel="Lịch khám"
+      />
 
       <Card title="Thông tin lịch khám">
         <Descriptions column={1} size="small" bordered>

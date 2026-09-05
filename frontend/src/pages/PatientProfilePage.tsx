@@ -18,6 +18,7 @@ import { useEffect } from 'react';
 
 import { patientApi } from '../api/patient';
 import { useAuth } from '../auth/useAuth';
+import { PageHeader } from '../components/PageHeader';
 import { errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
 import { toApiDate } from '../lib/datetime';
@@ -88,9 +89,10 @@ export function PatientProfilePage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        Hồ sơ của tôi
-      </Typography.Title>
+      <PageHeader
+        title="Hồ sơ của tôi"
+        description="Thông tin này hiển thị cho bác sĩ khi bạn đến khám."
+      />
 
       <Card>
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>

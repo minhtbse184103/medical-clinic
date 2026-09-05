@@ -19,6 +19,7 @@ import { useState } from 'react';
 
 import { adminApi } from '../api/admin';
 import { doctorsApi } from '../api/doctors';
+import { PageHeader } from '../components/PageHeader';
 import { errorCode, errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
 import { DAY_OF_WEEK_LABEL } from '../lib/appointmentStatus';
@@ -156,15 +157,9 @@ export function AdminSchedulesPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        Lịch làm việc của bác sĩ
-      </Typography.Title>
-
-      <Alert
-        type="info"
-        showIcon
-        message="Lịch làm việc lặp lại hàng tuần"
-        description="Các ca khám 30 phút được sinh ra từ đây. Chỉ hiện bác sĩ đang hoạt động."
+      <PageHeader
+        title="Lịch làm việc của bác sĩ"
+        description="Lịch lặp lại hàng tuần. Các ca khám 30 phút mà bệnh nhân đặt được sinh ra từ đây."
       />
 
       <Card>

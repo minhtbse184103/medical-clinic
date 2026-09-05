@@ -22,6 +22,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { doctorsApi } from '../api/doctors';
 import { receptionistApi } from '../api/receptionist';
+import { PageHeader } from '../components/PageHeader';
 import { errorMessage } from '../lib/apiError';
 import {
   APPOINTMENT_STATUS_COLOR,
@@ -176,14 +177,15 @@ export function ReceptionistAppointmentsPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Flex align="center" justify="space-between">
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Quản lý lịch hẹn
-        </Typography.Title>
-        <Button type="primary" onClick={() => navigate('/receptionist/book')}>
-          Đặt lịch hộ bệnh nhân
-        </Button>
-      </Flex>
+      <PageHeader
+        title="Quản lý lịch hẹn"
+        description="Lễ tân được hủy kể cả sát giờ khám, khác với bệnh nhân bị giới hạn 2 tiếng."
+        extra={
+          <Button type="primary" onClick={() => navigate('/receptionist/book')}>
+            Đặt lịch hộ bệnh nhân
+          </Button>
+        }
+      />
 
       {error && <Alert type="error" showIcon message={errorMessage(error)} />}
 

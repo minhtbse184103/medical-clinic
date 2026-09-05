@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { doctorsApi } from '../api/doctors';
 import { useAuth } from '../auth/useAuth';
+import { PageHeader } from '../components/PageHeader';
 import { errorMessage } from '../lib/apiError';
 import {
   DEFAULT_PAGE_QUERY,
@@ -84,9 +85,14 @@ export function DoctorListPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        Tìm bác sĩ
-      </Typography.Title>
+      <PageHeader
+        title="Tìm bác sĩ"
+        description={
+          canBook
+            ? 'Chọn bác sĩ theo tên hoặc chuyên khoa, rồi đặt lịch khám.'
+            : 'Danh bạ bác sĩ đang hoạt động của phòng khám.'
+        }
+      />
 
       {error && <Alert type="error" showIcon message={errorMessage(error)} />}
 

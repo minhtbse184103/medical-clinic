@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { doctorApi } from '../api/doctor';
+import { PageHeader } from '../components/PageHeader';
 import { errorCode, errorMessage } from '../lib/apiError';
 import { formatDateTime } from '../lib/datetime';
 import { DEFAULT_PAGE_QUERY, type PageQuery } from '../lib/pagination';
@@ -27,11 +28,12 @@ export function DoctorPatientHistoryPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Button onClick={() => navigate('/doctor/appointments')}>← Lịch khám</Button>
-
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        Lịch sử bệnh án
-      </Typography.Title>
+      <PageHeader
+        title="Lịch sử bệnh án"
+        description="Chỉ xem được bệnh nhân bạn đã từng khám."
+        onBack={() => navigate('/doctor/appointments')}
+        backLabel="Lịch khám"
+      />
 
       {isError && (
         <Alert

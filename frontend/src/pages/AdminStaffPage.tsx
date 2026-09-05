@@ -12,13 +12,13 @@ import {
   Space,
   Table,
   Tag,
-  Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { adminApi } from '../api/admin';
+import { PageHeader } from '../components/PageHeader';
 import { errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
 import { formatDateTime } from '../lib/datetime';
@@ -177,17 +177,18 @@ export function AdminStaffPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Flex align="center" justify="space-between" wrap gap={12}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Quản lý nhân sự
-        </Typography.Title>
-        <Space>
-          <Button type="primary" onClick={() => setCreateMode('DOCTOR')}>
-            Thêm bác sĩ
-          </Button>
-          <Button onClick={() => setCreateMode('RECEPTIONIST')}>Thêm lễ tân</Button>
-        </Space>
-      </Flex>
+      <PageHeader
+        title="Quản lý nhân sự"
+        description="Khóa tài khoản thay vì xóa, để dữ liệu lịch sử được giữ nguyên."
+        extra={
+          <>
+            <Button type="primary" onClick={() => setCreateMode('DOCTOR')}>
+              Thêm bác sĩ
+            </Button>
+            <Button onClick={() => setCreateMode('RECEPTIONIST')}>Thêm lễ tân</Button>
+          </>
+        }
+      />
 
       {error && <Alert type="error" showIcon message={errorMessage(error)} />}
 

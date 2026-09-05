@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
 import { patientApi } from '../api/patient';
+import { PageHeader } from '../components/PageHeader';
 import { PrescriptionTable } from '../components/PrescriptionTable';
 import { errorMessage } from '../lib/apiError';
 import { formatDateTime } from '../lib/datetime';
@@ -43,9 +44,10 @@ export function PatientMedicalRecordsPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        Bệnh án của tôi
-      </Typography.Title>
+      <PageHeader
+        title="Bệnh án của tôi"
+        description="Kết quả mỗi lần khám, kèm đơn thuốc nếu bác sĩ có kê."
+      />
 
       {recordsQuery.isError && (
         <Alert type="error" showIcon message={errorMessage(recordsQuery.error)} />
