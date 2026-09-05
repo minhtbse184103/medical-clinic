@@ -1,4 +1,11 @@
-import { LockOutlined, MailOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  ArrowRightOutlined,
+  EnvironmentOutlined,
+  LockOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import {
   Alert,
   App as AntdApp,
@@ -8,15 +15,16 @@ import {
   Form,
   Input,
   Row,
-  Select,
+  Segmented,
   Typography,
 } from 'antd';
-import type { Dayjs } from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { authApi } from '../api/auth';
 import { AuthLayout } from '../layouts/AuthLayout';
+import { REGISTER_PANEL } from '../layouts/authPanels';
 import { errorMessage } from '../lib/apiError';
 import { applyFieldErrors } from '../lib/formErrors';
 import { toApiDate } from '../lib/datetime';
@@ -62,19 +70,39 @@ export function RegisterPage() {
   };
 
   return (
-    <AuthLayout>
-      <Typography.Title level={2} style={{ marginBottom: 6, fontWeight: 700 }}>
-        Tạo tài khoản
+    <AuthLayout panel={REGISTER_PANEL}>
+      <Typography.Title level={2} style={{ marginBottom: 8, fontWeight: 700 }}>
+        Đăng ký tài khoản
       </Typography.Title>
-      <Typography.Paragraph type="secondary" style={{ fontSize: 15, marginBottom: 28 }}>
-        Đăng ký để đặt lịch khám và theo dõi bệnh án
+      <Typography.Paragraph type="secondary" style={{ fontSize: 15, marginBottom: 24 }}>
+        Điền thông tin cá nhân để đặt lịch khám và tra cứu hồ sơ bệnh án trực tuyến.
       </Typography.Paragraph>
 
       {generalError && (
         <Alert type="error" message={generalError} showIcon style={{ marginBottom: 20 }} />
       )}
 
-      <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={submitting}>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        disabled={submitting}
+        requiredMark
+      >
+        <Form.Item
+          name="fullName"
+          label="Họ và tên"
+          rules={[{ required: true, message: 'Vui lòng nhập họ tên.' }]}
+        >
+          <Input
+            size="large"
+            variant="filled"
+            prefix={<UserOutlined style={{ color: '#98a2b3', marginRight: 6 }} />}
+            placeholder="Nguyễn Văn A"
+            style={{ height: 48 }}
+          />
+        </Form.Item>
+
         <Form.Item
           name="email"
           label="Địa chỉ email"
@@ -86,9 +114,10 @@ export function RegisterPage() {
           <Input
             size="large"
             variant="filled"
-            prefix={<MailOutlined style={{ color: '#98a2b3' }} />}
-            placeholder="Nhập email của bạn"
+            prefix={<MailOutlined style={{ color: '#98a2b3', marginRight: 6 }} />}
+            placeholder="benhnhan@gmail.com"
             autoComplete="email"
+            style={{ height: 48 }}
           />
         </Form.Item>
 
@@ -103,62 +132,76 @@ export function RegisterPage() {
           <Input.Password
             size="large"
             variant="filled"
-            prefix={<LockOutlined style={{ color: '#98a2b3' }} />}
+            prefix={<LockOutlined style={{ color: '#98a2b3', marginRight: 6 }} />}
             placeholder="Tối thiểu 8 ký tự"
             autoComplete="new-password"
+            style={{ height: 48 }}
           />
         </Form.Item>
 
+        {/* Required here but optional in the API: a clinic needs a way to reach the patient. */}
         <Form.Item
-          name="fullName"
-          label="Họ và tên"
-          rules={[{ required: true, message: 'Vui lòng nhập họ tên.' }]}
+          name="phone"
+          label="Số điện thoại"
+          rules={[
+            { required: true, message: 'Vui lòng nhập số điện thoại.' },
+            { max: 30, message: 'Số điện thoại tối đa 30 ký tự.' },
+          ]}
         >
           <Input
             size="large"
             variant="filled"
-            prefix={<UserOutlined style={{ color: '#98a2b3' }} />}
-            placeholder="Nguyễn Văn A"
+            prefix={<PhoneOutlined style={{ color: '#98a2b3', marginRight: 6 }} />}
+            placeholder="0912 345 678"
+            style={{ height: 48 }}
           />
         </Form.Item>
 
-        <Form.Item name="phone" label="Số điện thoại">
-          <Input
-            size="large"
-            variant="filled"
-            prefix={<PhoneOutlined style={{ color: '#98a2b3' }} />}
-            placeholder="09xxxxxxxx"
-          />
-        </Form.Item>
-
-        <Row gutter={12}>
-          <Col span={12}>
+        <Row gutter={16}>
+          <Col xs={24} sm={11}>
             <Form.Item name="dateOfBirth" label="Ngày sinh">
               <DatePicker
                 size="large"
                 variant="filled"
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: 48 }}
                 format="DD/MM/YYYY"
-                placeholder="Chọn ngày"
+                placeholder="DD/MM/YYYY"
+                disabledDate={(value) => value.isAfter(dayjs(), 'day')}
               />
             </Form.Item>
           </Col>
-          <Col span={12}>
+          <Col xs={24} sm={13}>
             <Form.Item name="gender" label="Giới tính">
-              <Select
-                size="large"
-                variant="filled"
-                allowClear
-                options={GENDER_OPTIONS}
-                placeholder="Chọn"
-              />
+              <Segmented block size="large" options={GENDER_OPTIONS} style={{ height: 48 }} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item name="address" label="Địa chỉ">
-          <Input.TextArea variant="filled" rows={2} placeholder="Số nhà, đường, quận, tỉnh" />
+        <Form.Item
+          name="address"
+          label="Địa chỉ cư trú"
+          rules={[{ max: 500, message: 'Địa chỉ tối đa 500 ký tự.' }]}
+        >
+          <Input
+            size="large"
+            variant="filled"
+            prefix={<EnvironmentOutlined style={{ color: '#98a2b3', marginRight: 6 }} />}
+            placeholder="Số nhà, tên đường, phường/xã, quận/huyện..."
+            style={{ height: 48 }}
+          />
         </Form.Item>
+
+        {/*
+          The design placed terms-of-service and privacy-policy links here. Neither document
+          exists, so this states what is actually true of the data instead.
+        */}
+        <Typography.Paragraph
+          type="secondary"
+          style={{ fontSize: 13, lineHeight: 1.7, marginBottom: 20 }}
+        >
+          Thông tin bạn nhập được dùng để xác định đúng người bệnh khi khám và chỉ hiển thị cho
+          bác sĩ đã khám cho bạn.
+        </Typography.Paragraph>
 
         <Button
           type="primary"
@@ -166,14 +209,16 @@ export function RegisterPage() {
           size="large"
           block
           loading={submitting}
-          style={{ height: 48, fontWeight: 600, marginTop: 4 }}
+          icon={<ArrowRightOutlined />}
+          iconPosition="end"
+          style={{ height: 52, fontWeight: 600, borderRadius: 10 }}
         >
-          Đăng ký
+          Đăng ký tài khoản
         </Button>
       </Form>
 
       <Typography.Paragraph style={{ marginTop: 20, marginBottom: 0, textAlign: 'center' }}>
-        Đã có tài khoản? <Link to="/login">Đăng nhập</Link>
+        Đã có tài khoản? <Link to="/login">Đăng nhập ngay</Link>
       </Typography.Paragraph>
     </AuthLayout>
   );

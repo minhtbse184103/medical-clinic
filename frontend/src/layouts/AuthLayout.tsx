@@ -1,48 +1,17 @@
-import { CheckOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { SafetyCertificateOutlined } from '@ant-design/icons';
 import { Col, Row } from 'antd';
 import dayjs from 'dayjs';
 import type { ReactNode } from 'react';
 
 import { BrandMark } from '../components/BrandMark';
-
-interface Feature {
-  badge: ReactNode;
-  badgeBg: string;
-  title: string;
-  text: string;
-}
-
-const FEATURES: Feature[] = [
-  {
-    badge: <span style={{ fontSize: 13, fontWeight: 700 }}>30′</span>,
-    badgeBg: 'rgba(255,255,255,0.18)',
-    title: 'Khung giờ tiêu chuẩn',
-    text: 'Ca khám 30 phút, đặt trước theo lịch bác sĩ',
-  },
-  {
-    badge: <CheckOutlined style={{ fontSize: 15 }} />,
-    badgeBg: 'rgba(82, 196, 26, 0.85)',
-    title: 'Liên thông 4 vai trò',
-    text: 'Bệnh nhân · Lễ tân · Bác sĩ · Quản trị',
-  },
-];
-
-/**
- * Facts about the system, not marketing figures. The mock carried a 99.4% on-time rate;
- * nothing in this system measures punctuality, so it would have been invented.
- */
-const STATS = [
-  { value: '30', unit: 'phút', label: 'MỖI CA KHÁM' },
-  { value: '4', unit: 'vai trò', label: 'PHÂN QUYỀN' },
-  { value: '24/7', unit: '', label: 'BỆNH ÁN SỐ' },
-];
+import type { AuthPanel } from './authPanels';
 
 /**
  * Shell for the signed-out screens: one rounded white container holding the form on the
  * left and an inset blue panel on the right. The panel is hidden below 992px so a phone
  * gives the form the whole width.
  */
-export function AuthLayout({ children }: { children: ReactNode }) {
+export function AuthLayout({ children, panel }: { children: ReactNode; panel: AuthPanel }) {
   return (
     <div
       style={{
@@ -108,9 +77,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             </div>
 
             <h2 style={{ fontSize: 36, lineHeight: 1.25, fontWeight: 700, margin: 0 }}>
-              Chăm sóc chu đáo,
-              <br />
-              Đặt lịch chính xác.
+              {panel.title}
             </h2>
 
             <p
@@ -122,12 +89,11 @@ export function AuthLayout({ children }: { children: ReactNode }) {
                 color: 'rgba(255,255,255,0.82)',
               }}
             >
-              Số hóa quy trình khám ngoại trú: đặt lịch theo ca 30 phút, xác nhận và theo dõi lịch
-              hẹn, ghi bệnh án và kê đơn thuốc trên cùng một hệ thống.
+              {panel.description}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {FEATURES.map((feature) => (
+              {panel.features.map((feature) => (
                 <div
                   key={feature.title}
                   style={{
@@ -172,7 +138,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
                 borderTop: '1px solid rgba(255,255,255,0.18)',
               }}
             >
-              {STATS.map((stat) => (
+              {panel.stats.map((stat) => (
                 <div key={stat.label}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
                     <span style={{ fontSize: 30, fontWeight: 700, lineHeight: 1 }}>

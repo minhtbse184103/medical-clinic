@@ -5,6 +5,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../auth/useAuth';
 import { AuthLayout } from '../layouts/AuthLayout';
+import { LOGIN_PANEL } from '../layouts/authPanels';
 import { applyFieldErrors } from '../lib/formErrors';
 import { errorMessage } from '../lib/apiError';
 import type { LoginRequest } from '../types/api';
@@ -43,7 +44,7 @@ export function LoginPage() {
   };
 
   return (
-    <AuthLayout>
+    <AuthLayout panel={LOGIN_PANEL}>
       <Typography.Title level={2} style={{ marginBottom: 8, fontWeight: 700 }}>
         Chào mừng quay trở lại
       </Typography.Title>
