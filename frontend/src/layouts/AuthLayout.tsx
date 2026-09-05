@@ -1,84 +1,114 @@
-import { CalendarOutlined, FileTextOutlined, MedicineBoxOutlined } from '@ant-design/icons';
-import { Col, Row, Space, Typography } from 'antd';
+import { Col, Row } from 'antd';
 import type { ReactNode } from 'react';
 
+import { BrandMark, PulseIcon } from '../components/BrandMark';
+
+/** Honest capability claims. The mock's "500+ Hospitals" would be a fabricated statistic. */
 const HIGHLIGHTS = [
-  {
-    icon: <CalendarOutlined />,
-    title: 'Đặt lịch trực tuyến',
-    text: 'Chọn bác sĩ theo chuyên khoa và giữ chỗ ca khám 30 phút.',
-  },
-  {
-    icon: <FileTextOutlined />,
-    title: 'Bệnh án của bạn',
-    text: 'Xem lại chẩn đoán và hướng điều trị sau mỗi lần khám.',
-  },
-  {
-    icon: <MedicineBoxOutlined />,
-    title: 'Đơn thuốc rõ ràng',
-    text: 'Liều dùng, tần suất và thời gian uống đầy đủ.',
-  },
+  { value: '4', label: 'Vai trò' },
+  { value: '30′', label: 'Mỗi ca khám' },
+  { value: '24/7', label: 'Đặt lịch online' },
 ];
 
 /**
- * Two-column shell for the signed-out screens. The left panel is hidden below the lg
- * breakpoint, so on a phone the form gets the whole width.
+ * Two-column shell for the signed-out screens: the form on the left, a blue panel on the
+ * right introducing the product. The panel is hidden below the lg breakpoint so a phone
+ * gives the form the whole width.
  */
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <Row style={{ minHeight: '100vh' }}>
-      <Col
-        xs={0}
-        lg={10}
+    <div style={{ minHeight: '100vh', background: '#e8f1fb', padding: 24 }}>
+      <Row
         style={{
-          background: 'linear-gradient(160deg, #1677ff 0%, #0958d9 60%, #003eb3 100%)',
-          color: '#fff',
-          padding: 48,
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
+          minHeight: 'calc(100vh - 48px)',
+          background: '#fff',
+          borderRadius: 24,
+          boxShadow: '0 12px 40px rgba(16, 24, 40, 0.08)',
+          overflow: 'hidden',
         }}
       >
-        <Space direction="vertical" size="large">
-          <Typography.Title level={2} style={{ color: '#fff', margin: 0 }}>
-            Medical Clinic
-          </Typography.Title>
-          <Typography.Paragraph style={{ color: 'rgba(255,255,255,0.85)', fontSize: 16, margin: 0 }}>
-            Hệ thống quản lý phòng khám: đặt lịch, khám bệnh, kê đơn và tra cứu bệnh án trên cùng
-            một nơi.
-          </Typography.Paragraph>
+        <Col xs={24} lg={12} style={{ padding: 40, display: 'flex', flexDirection: 'column' }}>
+          <BrandMark />
 
-          <Space direction="vertical" size="middle" style={{ marginTop: 16 }}>
-            {HIGHLIGHTS.map((item) => (
-              <Space key={item.title} align="start" size="middle">
-                <span style={{ fontSize: 20, color: '#fff' }}>{item.icon}</span>
-                <Space direction="vertical" size={0}>
-                  <Typography.Text strong style={{ color: '#fff' }}>
-                    {item.title}
-                  </Typography.Text>
-                  <Typography.Text style={{ color: 'rgba(255,255,255,0.75)' }}>
-                    {item.text}
-                  </Typography.Text>
-                </Space>
-              </Space>
-            ))}
-          </Space>
-        </Space>
-      </Col>
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingBlock: 32,
+            }}
+          >
+            <div style={{ width: '100%', maxWidth: 420 }}>{children}</div>
+          </div>
+        </Col>
 
-      <Col
-        xs={24}
-        lg={14}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-          background: '#f4f6f9',
-        }}
-      >
-        <div style={{ width: '100%', maxWidth: 460 }}>{children}</div>
-      </Col>
-    </Row>
+        <Col xs={0} lg={12} style={{ padding: 12 }}>
+          <div
+            style={{
+              height: '100%',
+              borderRadius: 20,
+              padding: 56,
+              color: '#fff',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              /* Layered gradients stand in for the photograph in the mock; see the README. */
+              background:
+                'radial-gradient(120% 90% at 50% 0%, #4096ff 0%, rgba(64,150,255,0) 60%),' +
+                'linear-gradient(160deg, #1677ff 0%, #0958d9 55%, #002c8c 100%)',
+            }}
+          >
+            <div
+              style={{
+                width: 76,
+                height: 76,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.16)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 32,
+              }}
+            >
+              <PulseIcon size={38} />
+            </div>
+
+            <h2 style={{ fontSize: 38, lineHeight: 1.2, fontWeight: 700, margin: 0 }}>
+              Quản lý phòng khám
+              <br />
+              trên một hệ thống
+            </h2>
+
+            <p
+              style={{
+                marginTop: 20,
+                marginBottom: 0,
+                fontSize: 16,
+                lineHeight: 1.7,
+                color: 'rgba(255,255,255,0.82)',
+                maxWidth: 440,
+              }}
+            >
+              Đặt lịch khám, xác nhận lịch hẹn, ghi bệnh án và kê đơn thuốc — bệnh nhân, lễ tân,
+              bác sĩ và quản trị viên dùng chung một nơi.
+            </p>
+
+            <div style={{ display: 'flex', gap: 48, marginTop: 48 }}>
+              {HIGHLIGHTS.map((item) => (
+                <div key={item.label}>
+                  <div style={{ fontSize: 34, fontWeight: 700, lineHeight: 1.1 }}>{item.value}</div>
+                  <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
+                    {item.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Col>
+      </Row>
+    </div>
   );
 }
