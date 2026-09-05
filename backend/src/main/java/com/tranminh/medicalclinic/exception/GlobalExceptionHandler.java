@@ -2,12 +2,21 @@ package com.tranminh.medicalclinic.exception;
 
 import com.tranminh.medicalclinic.dto.response.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -15,6 +24,8 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ApiErrorResponse> handleEmailAlreadyExists(
@@ -327,6 +338,14 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, "INVALID_MEDICAL_RECORD_SORT", exception.getMessage(), request.getRequestURI(), null);
     }
 
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleUserNotFound(
+            UserNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", exception.getMessage(), request.getRequestURI(), null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,
@@ -343,6 +362,128 @@ public class GlobalExceptionHandler {
                 "Dữ liệu không hợp lệ.",
                 request.getRequestURI(),
                 fieldErrors
+        );
+    }
+
+    // The handlers below keep technical failures in the same ApiErrorResponse shape as business errors,
+    // so the frontend only needs one error parser.
+
+    /**
+     * Bean Validation on request parameters (the @Min/@Max on page and size in @Validated
+     * controllers) throws ConstraintViolationException rather than MethodArgumentNotValidException.
+     * Without this handler it fell through to the catch-all and returned 500 for what is a
+     * client mistake, on every paginated endpoint.
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleConstraintViolation(
+            ConstraintViolationException exception,
+            HttpServletRequest request
+    ) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+        for (ConstraintViolation<?> violation : exception.getConstraintViolations()) {
+            fieldErrors.putIfAbsent(lastPathNode(violation), violation.getMessage());
+        }
+
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_ERROR",
+                "Dữ liệu không hợp lệ.",
+                request.getRequestURI(),
+                fieldErrors
+        );
+    }
+
+    /** Turns a path such as "getDoctors.size" into the parameter name the client sent. */
+    private String lastPathNode(ConstraintViolation<?> violation) {
+        String path = violation.getPropertyPath().toString();
+        int lastSeparator = path.lastIndexOf('.');
+        return lastSeparator >= 0 ? path.substring(lastSeparator + 1) : path;
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_PARAMETER",
+                "Giá trị của tham số '" + exception.getName() + "' không hợp lệ.",
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingRequestParameter(
+            MissingServletRequestParameterException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "MISSING_PARAMETER",
+                "Thiếu tham số bắt buộc: '" + exception.getParameterName() + "'.",
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiErrorResponse> handleMalformedRequestBody(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.BAD_REQUEST,
+                "MALFORMED_REQUEST_BODY",
+                "Request body không đọc được hoặc sai định dạng JSON.",
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiErrorResponse> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "METHOD_NOT_ALLOWED",
+                "HTTP method không được hỗ trợ cho endpoint này.",
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNoResourceFound(
+            NoResourceFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                "ENDPOINT_NOT_FOUND",
+                "Endpoint không tồn tại.",
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiErrorResponse> handleUnexpected(
+            Exception exception,
+            HttpServletRequest request
+    ) {
+        // Log the cause for developers, but never leak internal details to the client.
+        log.error("Unhandled exception on {} {}", request.getMethod(), request.getRequestURI(), exception);
+
+        return buildResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "INTERNAL_ERROR",
+                "Đã xảy ra lỗi không mong muốn.",
+                request.getRequestURI(),
+                null
         );
     }
 
