@@ -27,7 +27,10 @@ export function DoctorDashboard() {
     queryFn: () => doctorApi.appointments({ page: 0, size: 100, date: today }),
   });
 
-  const appointments = todayQuery.data?.content ?? [];
+  // A cancelled visit is not a visit: it must not inflate today's workload.
+  const appointments = (todayQuery.data?.content ?? []).filter(
+    (appointment) => appointment.status !== 'CANCELLED',
+  );
   const waiting = appointments.filter((a) => a.status === 'CONFIRMED').length;
   const done = appointments.filter((a) => a.status === 'COMPLETED').length;
   const readyNow = appointments.filter(isReadyToExamine);

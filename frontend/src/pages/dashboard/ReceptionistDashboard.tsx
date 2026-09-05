@@ -20,12 +20,11 @@ import { receptionistApi } from '../../api/receptionist';
 import { StatCard } from '../../components/StatCard';
 import { errorMessage } from '../../lib/apiError';
 import { formatDate, formatTime, toApiDate } from '../../lib/datetime';
-import type { AppointmentStatus } from '../../types/api';
 
-function useAppointmentCount(params: { status?: AppointmentStatus; date?: string }) {
+function usePendingCount() {
   return useQuery({
-    queryKey: ['receptionist-appointments-count', params],
-    queryFn: () => receptionistApi.appointments({ page: 0, size: 1, ...params }),
+    queryKey: ['receptionist-appointments-count', { status: 'PENDING' }],
+    queryFn: () => receptionistApi.appointments({ page: 0, size: 1, status: 'PENDING' }),
     select: (page) => page.totalElements,
   });
 }
@@ -36,9 +35,23 @@ export function ReceptionistDashboard() {
   const { message } = AntdApp.useApp();
   const today = toApiDate(dayjs());
 
-  const pending = useAppointmentCount({ status: 'PENDING' });
-  const todayTotal = useAppointmentCount({ date: today });
-  const todayConfirmed = useAppointmentCount({ date: today, status: 'CONFIRMED' });
+  const pending = usePendingCount();
+
+  /*
+   * One request for the day, with both figures derived from it. Counting through the API
+   * would need two calls and would include cancelled appointments, which are not work.
+   */
+  const todayQuery = useQuery({
+    queryKey: ['receptionist-appointments', { date: today, size: 100 }],
+    queryFn: () => receptionistApi.appointments({ page: 0, size: 100, date: today }),
+    select: (page) => {
+      const active = page.content.filter((a) => a.status !== 'CANCELLED');
+      return {
+        total: active.length,
+        confirmed: active.filter((a) => a.status === 'CONFIRMED').length,
+      };
+    },
+  });
 
   const pendingList = useQuery({
     queryKey: ['receptionist-appointments', { status: 'PENDING', size: 5 }],
@@ -79,18 +92,18 @@ export function ReceptionistDashboard() {
         <Col xs={24} sm={12} lg={8}>
           <StatCard
             title="Lịch hẹn hôm nay"
-            value={todayTotal.data ?? 0}
+            value={todayQuery.data?.total ?? 0}
             icon={<CalendarOutlined />}
-            loading={todayTotal.isPending}
+            loading={todayQuery.isPending}
             onClick={() => navigate('/receptionist/appointments')}
           />
         </Col>
         <Col xs={24} sm={12} lg={8}>
           <StatCard
             title="Đã xác nhận hôm nay"
-            value={todayConfirmed.data ?? 0}
+            value={todayQuery.data?.confirmed ?? 0}
             icon={<CheckCircleOutlined />}
-            loading={todayConfirmed.isPending}
+            loading={todayQuery.isPending}
           />
         </Col>
       </Row>

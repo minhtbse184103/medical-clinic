@@ -7,13 +7,15 @@ import {
   TeamOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { App as AntdApp, Avatar, Dropdown, Layout, Menu, Typography } from 'antd';
+import { App as AntdApp, Avatar, Dropdown, Layout, Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import { Suspense } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../auth/useAuth';
+import { PulseIcon } from '../components/BrandMark';
 import { PageLoading } from '../components/SuspendedPage';
+import { initials, ROLE_LABEL } from '../lib/user';
 import type { Role } from '../types/api';
 
 const { Header, Sider, Content } = Layout;
@@ -86,9 +88,25 @@ export function AppLayout() {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider breakpoint="lg" collapsedWidth="0">
-        <Typography.Title level={5} style={{ color: '#fff', margin: 16 }}>
-          Medical Clinic
-        </Typography.Title>
+        {/* Same mark as the sign-in screen, so the product reads the same on both sides. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '20px 16px' }}>
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              background: '#1677ff',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <PulseIcon size={20} />
+          </div>
+          <span style={{ color: '#fff', fontSize: 16, fontWeight: 600 }}>Medical Clinic</span>
+        </div>
         <Menu
           theme="dark"
           mode="inline"
@@ -114,9 +132,16 @@ export function AppLayout() {
               onClick: handleLogout,
             }}
           >
-            <span style={{ cursor: 'pointer' }}>
-              <Avatar icon={<UserOutlined />} style={{ marginRight: 8 }} />
-              {displayName}
+            <span
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
+            >
+              <span style={{ textAlign: 'right', lineHeight: 1.3 }}>
+                <div style={{ fontWeight: 600 }}>{displayName}</div>
+                <div style={{ fontSize: 12, color: '#667085' }}>{ROLE_LABEL[user.role]}</div>
+              </span>
+              <Avatar size={38} style={{ background: '#0d9488', fontWeight: 600 }}>
+                {initials(displayName)}
+              </Avatar>
             </span>
           </Dropdown>
         </Header>

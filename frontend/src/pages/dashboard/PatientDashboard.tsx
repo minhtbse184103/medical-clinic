@@ -2,6 +2,7 @@ import {
   CalendarOutlined,
   ClockCircleOutlined,
   FileTextOutlined,
+  HistoryOutlined,
   MedicineBoxOutlined,
   RightOutlined,
 } from '@ant-design/icons';
@@ -54,10 +55,22 @@ export function PatientDashboard() {
   const navigate = useNavigate();
   const today = toApiDate(dayjs());
 
+  /*
+   * "Upcoming" means still active. The API filters on one status at a time, so a wider
+   * page is fetched by date and narrowed here; otherwise cancelled and completed visits
+   * appear under a heading that promises neither.
+   */
   const upcoming = useQuery({
     queryKey: ['my-appointments-upcoming'],
     queryFn: () =>
-      appointmentsApi.mine({ page: 0, size: 5, fromDate: today, sort: 'appointmentDate,asc' }),
+      appointmentsApi.mine({ page: 0, size: 20, fromDate: today, sort: 'appointmentDate,asc' }),
+    select: (page) =>
+      page.content
+        .filter(
+          (appointment) =>
+            appointment.status === 'PENDING' || appointment.status === 'CONFIRMED',
+        )
+        .slice(0, 4),
   });
 
   const pending = useQuery({
@@ -90,9 +103,8 @@ export function PatientDashboard() {
     select: (page) => page.content[0],
   });
 
-  const nextAppointment = upcoming.data?.content.find(
-    (appointment) => appointment.status === 'PENDING' || appointment.status === 'CONFIRMED',
-  );
+  const upcomingList = upcoming.data ?? [];
+  const nextAppointment = upcomingList[0];
   const latestPrescription = prescriptions.data?.content[0];
 
   return (
@@ -154,9 +166,9 @@ export function PatientDashboard() {
               }
               loading={upcoming.isPending}
             >
-              {upcoming.data && upcoming.data.content.length > 0 ? (
+              {upcomingList.length > 0 ? (
                 <Space direction="vertical" size={12} style={{ width: '100%' }}>
-                  {upcoming.data.content.map((appointment) => (
+                  {upcomingList.map((appointment) => (
                     <ListRow
                       key={appointment.appointmentId}
                       onClick={() => navigate('/appointments')}
@@ -255,12 +267,13 @@ export function PatientDashboard() {
                           {detail.medicineName} {detail.dosage}
                         </Typography.Text>
                         {/* Quantity, not a status: a prescription line has no active flag. */}
-                        <Tag color="purple" style={{ marginInlineEnd: 0 }}>
-                          {detail.quantity}
+                        <Tag color="purple" style={{ marginInlineEnd: 0, flexShrink: 0 }}>
+                          SL {detail.quantity}
                         </Tag>
                       </div>
+                      {/* Labelled, because the doctor may enter bare values like "3" and "5". */}
                       <div style={{ color: '#667085', fontSize: 13, marginTop: 4 }}>
-                        {detail.frequency} · {detail.duration}
+                        Tần suất {detail.frequency} · Dùng trong {detail.duration}
                       </div>
                     </div>
                   ))}
@@ -276,7 +289,7 @@ export function PatientDashboard() {
 
             <Card
               title={
-                <SectionTitle icon={<MedicineBoxOutlined />} title="Lần khám gần nhất" color="#eb2f96" />
+                <SectionTitle icon={<HistoryOutlined />} title="Lần khám gần nhất" color="#eb2f96" />
               }
               loading={lastVisit.isPending}
             >
