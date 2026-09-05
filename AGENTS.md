@@ -109,7 +109,8 @@ docs/
 ├── 04-appointment-lifecycle.md
 ├── 05-domain-model-database-design.md
 ├── 06-physical-database-schema-erd.md
-└── 07-rest-api-design.md
+├── 07-rest-api-design.md
+└── 08-ui-design-brief.md
 
 Structure Rules
 
