@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 import type { AppointmentStatus, DayOfWeek } from '../types/api';
 
 export const APPOINTMENT_STATUS_LABEL: Record<AppointmentStatus, string> = {
@@ -39,3 +41,19 @@ const DAY_BY_INDEX: DayOfWeek[] = [
 ];
 
 export const dayOfWeekFromIndex = (index: number): DayOfWeek => DAY_BY_INDEX[index];
+
+/**
+ * A visit can be examined once it is CONFIRMED and its start time has passed, which is
+ * exactly what MedicalRecordService requires. Checking it keeps the button off rows the
+ * backend would refuse.
+ */
+export function isReadyToExamine(appointment: {
+  status: AppointmentStatus;
+  appointmentDate: string;
+  startTime: string;
+}): boolean {
+  if (appointment.status !== 'CONFIRMED') {
+    return false;
+  }
+  return !dayjs(`${appointment.appointmentDate}T${appointment.startTime}`).isAfter(dayjs());
+}

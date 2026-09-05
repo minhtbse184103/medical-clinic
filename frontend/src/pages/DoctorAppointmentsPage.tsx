@@ -1,13 +1,17 @@
 import { Alert, Button, Card, DatePicker, Flex, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import dayjs, { type Dayjs } from 'dayjs';
+import type { Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { doctorApi } from '../api/doctor';
 import { errorMessage } from '../lib/apiError';
-import { APPOINTMENT_STATUS_COLOR, APPOINTMENT_STATUS_LABEL } from '../lib/appointmentStatus';
+import {
+  APPOINTMENT_STATUS_COLOR,
+  APPOINTMENT_STATUS_LABEL,
+  isReadyToExamine,
+} from '../lib/appointmentStatus';
 import { formatDate, formatTime, toApiDate } from '../lib/datetime';
 import {
   DEFAULT_PAGE_QUERY,
@@ -24,17 +28,6 @@ const STATUS_OPTIONS = (Object.keys(APPOINTMENT_STATUS_LABEL) as AppointmentStat
 interface Filters {
   date?: string;
   status?: AppointmentStatus;
-}
-
-/**
- * A visit can be examined once it is CONFIRMED and its start time has passed. Checking it
- * here keeps the button off rows the backend would refuse.
- */
-function isReadyToExamine(appointment: DoctorAppointment): boolean {
-  if (appointment.status !== 'CONFIRMED') {
-    return false;
-  }
-  return !dayjs(`${appointment.appointmentDate}T${appointment.startTime}`).isAfter(dayjs());
 }
 
 export function DoctorAppointmentsPage() {
