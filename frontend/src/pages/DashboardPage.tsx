@@ -17,6 +17,7 @@ export function DashboardPage() {
 
   // ADMIN and RECEPTIONIST have no profile table, so fullName is null for them.
   const displayName = user.fullName ?? user.email;
+  const greetingName = user.role === 'DOCTOR' && user.fullName ? `BS. ${displayName}` : displayName;
 
   return (
     <Space direction="vertical" size={20} style={{ width: '100%' }}>
@@ -25,7 +26,7 @@ export function DashboardPage() {
       <Flex align="flex-start" justify="space-between" gap={16} wrap>
         <div>
           <Typography.Title level={3} style={{ margin: 0, fontWeight: 700 }}>
-            Xin chào, {displayName}
+            Xin chào, {greetingName}
           </Typography.Title>
           <Space size={8} style={{ color: '#667085', marginTop: 4 }}>
             <CalendarOutlined />
