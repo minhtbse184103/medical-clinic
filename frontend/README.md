@@ -38,6 +38,7 @@ Sign in with any demo account from the root `README.md` (password `Demo@12345`).
 
 ```powershell
 npm run build   # tsc -b && vite build
+npm run test    # vitest run
 npm run lint
 ```
 
@@ -112,9 +113,25 @@ Done and verified end to end:
 
 All four MVP roles are covered. Menus only list routes that exist, so no entry can reach a 404.
 
-There are no frontend tests yet. The token refresh interceptor in `src/api/client.ts` is the first
-thing worth covering: its single-flight behaviour is easy to break and the failure only shows up
-when several requests expire at once.
+## Tests
+
+`npm run test` runs 39 Vitest tests over the pieces where a mistake is easy to make and hard to
+notice by hand:
+
+- `src/api/client.ts` — the token refresh interceptor. The single-flight test is the important
+  one: the backend rotates and revokes the previous refresh token, so concurrent 401s must share
+  one refresh or every request but the first is logged out. Removing the `??=` that guards it
+  makes that test fail with three refresh calls instead of one.
+- `src/lib/pagination.ts` — the 0-based to 1-based conversion, in both directions and as a round
+  trip.
+- `src/lib/formErrors.ts` — `fieldErrors` landing on the matching form fields.
+- `src/lib/apiError.ts` — parsing the backend error shape, and the fallback when the server cannot
+  be reached at all.
+- `src/auth/ProtectedRoute.tsx` — role gating, including that it waits while the stored session is
+  being restored rather than bouncing to the login page.
+
+The screens themselves are not covered; they are mostly Ant Design components wired to the API
+layer that is tested here.
 
 The examine button appears only on `CONFIRMED` appointments whose start time has passed, which is
 exactly what the backend requires before a Medical Record can be created. Creating that record also
